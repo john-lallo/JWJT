@@ -94,6 +94,7 @@
 			this.i = i;	//index
 			this.S = S; //member bodies
 
+			/*
 			this.W = [];
 
 			for(var i = 0; i < 3*this.S.length; ++i){ this.W[i] = [];
@@ -106,7 +107,7 @@
 				this.W[3*i+1][3*i+1] = S[i].invm;
 				this.W[3*i+2][3*i+2] = S[i].invI;
 			}
-
+			*/
 		}
 		constraint.prototype.condition = function(){ return true; }
 		constraint.prototype.C = function() { return 0;	}
@@ -128,19 +129,27 @@
 
 			if(this.condition()){
 				var nablaC = this.nablaC();
-				var nablaCT = numeric['transpose'](nablaC);
+				//var nablaCT = numeric['transpose'](nablaC);
+				//var WnablaCT = numeric['dot'](this.W, nablaCT);
 
-				var WnablaCT = numeric['dot'](this.W, nablaCT);
-
+				var WnablaCT = [];
+				for(var i = 0; i < this.S.length; ++i){
+					WnablaCT[3*i] = [nablaC[0][3*i]*this.S[i].invm];
+					WnablaCT[3*i+1] = [nablaC[0][3*i+1]*this.S[i].invm];
+					WnablaCT[3*i+2] = [nablaC[0][3*i+2]*this.S[i].invI];
+				}
+				
 				var nablaCWnablaCT =
 				numeric['dot'](nablaC, WnablaCT);
-
+				
 				if(numeric['det'](nablaCWnablaCT) == 0){ return; }
 
-				var lambda =
+				var lambda = numeric['*'](-this.C(), numeric['inv'](nablaCWnablaCT));
+				/*
 				numeric['*'](
 					numeric['inv'](nablaCWnablaCT), numeric['*'](-1, this.C())
 				);
+				*/
 
 				var dP = numeric['dot'](WnablaCT, lambda);
 				//update positions
@@ -152,10 +161,12 @@
 
 
 
-
+		//vector rotation (element form)
 		function rot(th, v){
 		return ([v[0]*Math.cos(th) + v[1]*Math.sin(th),	v[0]*Math.sin(th) - v[1]*Math.cos(th)]);
 		}
+		//vector length squared (not used)
+		//function L2(v){ return v[0]*v[0]+v[1]*v[1]; }
 
 		//constraint: rev constraint
 		function rev_constraint(i, A, B, P){
@@ -181,10 +192,9 @@
 					rot(this.S[1].q[2], this.rB)
 				)
 			);
-			//console.log(D);
+
 			return numeric['dot'](D, D);
 		}
-
 
 
 		//constraint: anchor constraint
@@ -200,12 +210,116 @@
 
 
 
+		//constraint: collision constraint
+		function k_constraint(i, A, B, manifold){
 
+			console.log('k created!');
+
+			constraint.call(this, i, [A, B]);
+
+			this.n = manifold[0]; //unit penetration vector
+			this.targL = 
+			Math.abs(numeric['dot'](
+				[this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]],
+				this.n
+			)) + manifold[1]; //target distance.
+
+			console.log(' n:');
+			console.log(this.n);
+			console.log('dL:' + this.dL);
+			console.log('L0:' + this.L0);
+		}
+		k_constraint.prototype = Object.create(constraint.prototype);
+		k_constraint.prototype.constructor = k_constraint;
+
+		k_constraint.prototype.C = function(){
+			
+			var L = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
+			//console.log('deviation:' + Math.abs(numeric['dot'](L, this.n)) - this.targL);
+
+			return (Math.abs(numeric['dot'](L, this.n)) - this.targL);
+		}
+
+
+
+		//collision detection
+		function box_to_box(A, B){
+			//Separate Axis Thm.
+			
+
+			var diagA1 = rot(A.q[2], [A.w/2, A.h/2]);
+			var diagA2 = rot(A.q[2], [A.w/2, -A.h/2]);
+
+			var diagB1 = rot(B.q[2], [B.w/2, B.h/2]);
+			var diagB2 = rot(B.q[2], [B.w/2, -B.h/2]);
+
+			var d = [B.q[0]-A.q[0], B.q[1]-A.q[1]];
+
+			var axes = [
+				rot(A.q[2], [1, 0]),
+				rot(A.q[2], [0, 1]),
+				rot(B.q[2], [1, 0]),
+				rot(B.q[2], [0, 1]),
+			];
+
+			var tmpi = 0;
+			var tmpL = 1e+9;
+			for(var i = 0; i < 4; ++i){
+
+				var projA = Math.max(
+					Math.abs(numeric['dot'](diagA1, axes[i])),
+					Math.abs(numeric['dot'](diagA2, axes[i]))
+				);
+
+				var projB = Math.max(
+					Math.abs(numeric['dot'](diagB1, axes[i])),
+					Math.abs(numeric['dot'](diagB2, axes[i]))
+				);
+
+				var projD = Math.abs(numeric['dot'](d, axes[i]));
+
+				/*
+				console.log('a:' + projA);
+				console.log('b:' + projB);
+				console.log('d:' + projD);
+				*/
+
+				var e = projA + projB - projD;
+				if(e < 0){ return false; }
+				if(e < tmpL){ tmpi = i; tmpL = e; }
+			}
+
+
+			console.log('bleuuuurgh');
+			return ([ axes[tmpi], tmpL ]);
+		}
+
+		function collide(){
+
+			K = [];
+			klabel = 0;
+
+			for(var i = 0; i < B.length; ++i){
+			for(var j = i+1; j < B.length; ++j){
+			if(B[i] && B[j]){
+
+					var k = box_to_box(B[i], B[j]);
+					console.log(k);
+
+					if(k){
+						K[klabel] = new k_constraint(klabel, B[i], B[j], k); ++klabel;
+					}
+
+			}
+			}}
+		}
 
 
 		var B = []; var blabel = 0; //all bodies
 		var C = []; var clabel = 0; //static constraints
-	
+		var K = []; var klabel = 0; //collision constraints
+
+		/*
 		function demo_hinges(){
 
 			var Blab0 = blabel;
@@ -228,10 +342,10 @@
 			var Blab0 = blabel;
 
 			B[blabel] = new box(blabel, 1, 10, 70, [600, 600, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [600, 540, 0], [20, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [600, 480, 0], [40, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [600, 420, 0], [60, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [600, 360, 0], [80, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 10, 70, [600, 540, 0], [20, 0, 0.2]); ++blabel;
+			B[blabel] = new box(blabel, 1, 10, 70, [600, 480, 0], [40, 0, 0.4]); ++blabel;
+			B[blabel] = new box(blabel, 1, 10, 70, [600, 420, 0], [60, 0, 0.6]); ++blabel;
+			B[blabel] = new box(blabel, 1, 10, 70, [600, 360, 0], [80, 0, 0.8]); ++blabel;
 
 			C[clabel] = new anchor_constraint(clabel, B[Blab0+0]); ++clabel;
 
@@ -240,14 +354,23 @@
 			C[clabel] = new rev_constraint(clabel, B[Blab0+2], B[Blab0+3], [600, 450]); ++clabel;
 			C[clabel] = new rev_constraint(clabel, B[Blab0+3], B[Blab0+4], [600, 390]); ++clabel;
 		}
+		*/
 
 		$(document).ready(function(){
 
-			//$(document).click(function(e){ console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
-			demo_chain();
-			demo_hinges();
+			$(document).click(function(e){
+			console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
 
-			window.setInterval(timestep);
+
+			//demo_chain();
+
+
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 300, 0], [80, 80, 0.8]); ++blabel;
+			B[blabel] = new box(blabel, 1, 60, 60, [500, 300, 0], [0, 80, 0]); ++blabel;
+
+
+
+			//window.setInterval(timestep, 30);
 
 		});
 
@@ -266,6 +389,7 @@
 			for(var i = 0; i < 12; ++i){
 
 			C.forEach(function(c){ c.solve(); });
+			K.forEach(function(k){ k.solve(); });
 
 			}
 		}
@@ -274,8 +398,9 @@
 
 		function timestep(){
 			integrate();
-
 			constrain();
+
+			collide();
 
 			render();
 		}
