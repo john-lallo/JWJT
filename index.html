@@ -215,22 +215,14 @@
 
 			constraint.call(this, i, [A, B]);
 
-			this.n = manifold['n']; //unit penetration vector
+			this.manifold = manifold; //unit penetration vector
+
 			this.targL = 
 			Math.abs(numeric['dot'](
 				[this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]],
-				this.n
-			)) + manifold['dL']; //target distance.
+				this.manifold['n']
+			)) + this.manifold['dL']; //target distance.
 
-			this.rA = manifold['rA'];
-			this.rB = manifold['rA'];
-
-			/*
-			console.log(' n:');
-			console.log(this.n);
-			console.log('dL:' + manifold['dL']);
-			console.log('L0:' + this.L0);
-			*/
 		}
 		k_constraint.prototype = Object.create(constraint.prototype);
 		k_constraint.prototype.constructor = k_constraint;
@@ -238,13 +230,15 @@
 		k_constraint.prototype.C = function(){
 			
 			var L = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
-			//console.log('deviation:' + Math.abs(numeric['dot'](L, this.n)) - this.targL);
 
-			return (Math.abs(numeric['dot'](L, this.n)) - this.targL);
+			return (Math.abs(numeric['dot'](L, this.manifold['n'])) - this.targL);
 		}
 
 		//velocity correction step
 		k_constraint.prototype.velocity = function(){
+
+			console.log(this.manifold['n']);
+
 			var v0A = [
 			(this.S[0].q[0]-this.S[0].qprev[0])/dt,
 			(this.S[0].q[1]-this.S[0].qprev[1])/dt
@@ -258,16 +252,84 @@
 			var w0A = (this.S[0].q[2]-this.S[0].qprev[2])/dt;
 			var w0B = (this.S[1].q[2]-this.S[1].qprev[2])/dt;
 
-
-
 			var e = 1;
 
 			var vAB = numeric['-'](v0A, v0B);
+			var d = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
 
-			var numer = -(1+e)*numeric['dot'](vAB, this.n);
+			var rA = [0, 0];
+			var rB = [0, 0];
 
-			var rAdotN = numeric['dot'](this.rA, this.n);
-			var rBdotN = numeric['dot'](this.rB, this.n);
+			console.log('manifold i:' + this.manifold['i']);
+			if(this.manifold['i'] < 2){
+				//reference on A, calculate rA rB from B
+				/*
+				var Bvertices = [
+					rot(this.S[1].q[2], [this.S[1].w/2, this.S[1].h/2]),
+					rot(this.S[1].q[2], [-this.S[1].w/2, this.S[1].h/2]),
+					rot(this.S[1].q[2], [-this.S[1].w/2, -this.S[1].h/2]),
+					rot(this.S[1].q[2], [this.S[1].w/2, -this.S[1].h/2])
+				];
+
+				console.log('vertices:');
+				console.log(Bvertices);
+
+				var maxdot = 0; var maxi = 0;
+				var dot = 0;				
+				for(var i = 0; i < 4; ++i){
+					dot = -numeric['dot'](Bvertices[i], this.manifold['n']);
+					if(dot > maxdot){ maxdot = dot; maxi = i; }
+				}
+
+				rB = Bvertices[maxi];
+				rA = numeric['+'](d, rB);
+
+				console.log('rA:');
+				console.log(rA);
+
+				console.log('rB:');
+				console.log(rB);
+				*/
+			} else {
+				//reference on B, calculate rA rB from A
+
+				var Avertices = [
+					rot(this.S[0].q[2], [this.S[0].w/2, this.S[0].h/2]),
+					rot(this.S[0].q[2], [-this.S[0].w/2, this.S[0].h/2]),
+					rot(this.S[0].q[2], [-this.S[0].w/2, -this.S[0].h/2]),
+					rot(this.S[0].q[2], [this.S[0].w/2, -this.S[0].h/2])
+				];
+
+				console.log('vertices:');
+				console.log(Avertices);
+
+				var maxdot = 0; var maxi = 0;
+				var dot = 0;				
+				for(var i = 0; i < 4; ++i){
+					dot = numeric['dot'](Avertices[i], this.manifold['n']);
+					if(dot > maxdot){ maxdot = dot; maxi = i; }
+				}
+
+				rA = Avertices[maxi];
+				rB = numeric['-'](d, rA);
+
+				console.log('rA:');
+				console.log(rA);
+
+				console.log('rB:');
+				console.log(rB);
+
+			}
+
+
+
+
+			
+
+			var numer = -(1+e)*numeric['dot'](vAB, this.manifold['n']);
+
+			var rAdotN = numeric['dot'](rA, this.manifold['n']);
+			var rBdotN = numeric['dot'](rB, this.manifold['n']);
 
 			var denum = (
 			(this.S[0].invm+this.S[1].invm) +
@@ -277,7 +339,27 @@
 
 			var j = numer/denum;
 
-			console.log(j);
+			var J = 
+			[
+				j*this.manifold['n'][0]/dt,
+				j*this.manifold['n'][1]/dt,
+				0,
+			];
+
+			
+			console.log('J:');
+			console.log(J);
+
+
+			this.S[0].qprev = numeric['-'](this.S[0].q,
+				numeric['+'](numeric['*']([v0A[0], v0A[1], w0A], dt), J)
+			);
+
+			console.log(this.S[0]);
+
+			this.S[1].qprev = numeric['-'](this.S[1].q,
+				numeric['-'](numeric['*']([v0B[0], v0B[1], w0B], dt), J)
+			);
 			
 		}
 
@@ -304,11 +386,9 @@
 
 			var tmp = [];
 
+			tmp['i'] = 0;
 			tmp['n'] = axes[0];
 			tmp['dL'] = 1e+9;
-
-			tmp['rA'] = 0;
-			tmp['rB'] = 0;
 
 			for(var i = 0; i < 4; ++i){
 
@@ -333,16 +413,17 @@
 				var e = projA + projB - projD;
 				if(e < 0){ return false; }
 				if(e < tmp['dL']){
+
+					tmp['i'] = i;
 					tmp['n'] = axes[i];
 					tmp['dL'] = e;
 
 					var sign = 1;
-					if(numeric['dot'](d, tmp['n']) < 0){ sign = -1; }
-
+					if(numeric['dot'](d, tmp['n']) < 0){ tmp['n'] = numeric['*'](tmp['n'], -1); }
 
 					/* THIS IS VERY INCORRECT */
-					tmp['rA'] = numeric['*']( sign * projA, tmp['n']);
-					tmp['rB'] = numeric['*'](-sign * projB, tmp['n']);
+					//tmp['rA'] = numeric['*']( sign * projA, tmp['n']);
+					//tmp['rB'] = numeric['*'](-sign * projB, tmp['n']);
 				}
 			}
 
@@ -362,7 +443,6 @@
 			if(B[i] && B[j]){
 
 					var k = box_to_box(B[i], B[j]);
-					console.log(k);
 
 					if(k){
 						K[klabel] = new k_constraint(klabel, B[i], B[j], k); ++klabel;
@@ -370,6 +450,8 @@
 
 			}
 			}}
+
+			K.forEach(function(k){ k.solve(); });
 		}
 
 
@@ -423,7 +505,7 @@
 			//demo_chain();
 
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 300, 0], [80, 80, 0.8]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 300, 0.1], [80, 80, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 60, 60, [500, 300, 0], [0, 80, 0]); ++blabel;
 
 
@@ -447,7 +529,6 @@
 			for(var i = 0; i < 12; ++i){
 
 			C.forEach(function(c){ c.solve(); });
-			K.forEach(function(k){ k.solve(); });
 
 			}
 		}
