@@ -213,21 +213,24 @@
 		//constraint: collision constraint
 		function k_constraint(i, A, B, manifold){
 
-			console.log('k created!');
-
 			constraint.call(this, i, [A, B]);
 
-			this.n = manifold[0]; //unit penetration vector
+			this.n = manifold['n']; //unit penetration vector
 			this.targL = 
 			Math.abs(numeric['dot'](
 				[this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]],
 				this.n
-			)) + manifold[1]; //target distance.
+			)) + manifold['dL']; //target distance.
 
+			this.rA = manifold['rA'];
+			this.rB = manifold['rA'];
+
+			/*
 			console.log(' n:');
 			console.log(this.n);
-			console.log('dL:' + this.dL);
+			console.log('dL:' + manifold['dL']);
 			console.log('L0:' + this.L0);
+			*/
 		}
 		k_constraint.prototype = Object.create(constraint.prototype);
 		k_constraint.prototype.constructor = k_constraint;
@@ -240,6 +243,43 @@
 			return (Math.abs(numeric['dot'](L, this.n)) - this.targL);
 		}
 
+		//velocity correction step
+		k_constraint.prototype.velocity = function(){
+			var v0A = [
+			(this.S[0].q[0]-this.S[0].qprev[0])/dt,
+			(this.S[0].q[1]-this.S[0].qprev[1])/dt
+			];
+
+			var v0B = [
+			(this.S[1].q[0]-this.S[1].qprev[0])/dt,
+			(this.S[1].q[1]-this.S[1].qprev[1])/dt
+			];
+
+			var w0A = (this.S[0].q[2]-this.S[0].qprev[2])/dt;
+			var w0B = (this.S[1].q[2]-this.S[1].qprev[2])/dt;
+
+
+
+			var e = 1;
+
+			var vAB = numeric['-'](v0A, v0B);
+
+			var numer = -(1+e)*numeric['dot'](vAB, this.n);
+
+			var rAdotN = numeric['dot'](this.rA, this.n);
+			var rBdotN = numeric['dot'](this.rB, this.n);
+
+			var denum = (
+			(this.S[0].invm+this.S[1].invm) +
+			rAdotN*rAdotN/this.S[0].invm +
+			rBdotN*rBdotN/this.S[1].invm
+			);
+
+			var j = numer/denum;
+
+			console.log(j);
+			
+		}
 
 
 		//collision detection
@@ -262,8 +302,14 @@
 				rot(B.q[2], [0, 1]),
 			];
 
-			var tmpi = 0;
-			var tmpL = 1e+9;
+			var tmp = [];
+
+			tmp['n'] = axes[0];
+			tmp['dL'] = 1e+9;
+
+			tmp['rA'] = 0;
+			tmp['rB'] = 0;
+
 			for(var i = 0; i < 4; ++i){
 
 				var projA = Math.max(
@@ -286,12 +332,24 @@
 
 				var e = projA + projB - projD;
 				if(e < 0){ return false; }
-				if(e < tmpL){ tmpi = i; tmpL = e; }
+				if(e < tmp['dL']){
+					tmp['n'] = axes[i];
+					tmp['dL'] = e;
+
+					var sign = 1;
+					if(numeric['dot'](d, tmp['n']) < 0){ sign = -1; }
+
+
+					/* THIS IS VERY INCORRECT */
+					tmp['rA'] = numeric['*']( sign * projA, tmp['n']);
+					tmp['rB'] = numeric['*'](-sign * projB, tmp['n']);
+				}
 			}
 
 
 			console.log('bleuuuurgh');
-			return ([ axes[tmpi], tmpL ]);
+
+			return tmp;
 		}
 
 		function collide(){
@@ -394,6 +452,10 @@
 			}
 		}
 
+		function velocity_correction(){
+			K.forEach(function(k){ k.velocity(); });
+		}
+
 		function render(){ B.forEach(function(b){ b.sync(); }); }
 
 		function timestep(){
@@ -401,6 +463,8 @@
 			constrain();
 
 			collide();
+
+			velocity_correction();
 
 			render();
 		}
