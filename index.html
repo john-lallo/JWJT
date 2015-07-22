@@ -47,8 +47,8 @@
 
 
 
-		var dt = 0.1;
-		var g = [0, -9.8, 0];
+		var dt = 0.02;
+		var g = [0, 0, 0];
 
 
 
@@ -165,6 +165,9 @@
 		function rot(th, v){
 		return ([v[0]*Math.cos(th) + v[1]*Math.sin(th),	v[0]*Math.sin(th) - v[1]*Math.cos(th)]);
 		}
+		function Xv(u, v){
+			return (u[0]*v[0] - u[1]*v[1]);
+		}
 		//vector length squared (not used)
 		//function L2(v){ return v[0]*v[0]+v[1]*v[1]; }
 
@@ -237,30 +240,10 @@
 		//velocity correction step
 		k_constraint.prototype.velocity = function(){
 
-			console.log(this.manifold['n']);
-
-			var v0A = [
-			(this.S[0].q[0]-this.S[0].qprev[0])/dt,
-			(this.S[0].q[1]-this.S[0].qprev[1])/dt
-			];
-
-			var v0B = [
-			(this.S[1].q[0]-this.S[1].qprev[0])/dt,
-			(this.S[1].q[1]-this.S[1].qprev[1])/dt
-			];
-
-			var w0A = (this.S[0].q[2]-this.S[0].qprev[2])/dt;
-			var w0B = (this.S[1].q[2]-this.S[1].qprev[2])/dt;
-
-			var e = 1;
-
-			var vAB = numeric['-'](v0A, v0B);
 			var d = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
 
 			var rA = [0, 0];
 			var rB = [0, 0];
-
-			console.log('manifold i:' + this.manifold['i']);
 
 			var k;
 			if(this.manifold['i'] < 2){ k = 1; } else { k = 0; }
@@ -302,6 +285,82 @@
 
 			console.log('rB:');
 			console.log(rB);
+
+
+
+			var wA = (this.S[0].q[2]-this.S[0].qprev[2])/dt;
+
+			var vA =
+			[
+			(this.S[0].q[0]-this.S[0].qprev[0])/dt,
+			(this.S[0].q[1]-this.S[0].qprev[1])/dt
+			];
+
+			var vAP = numeric['+'](vA, [rA[1]*wA, -rA[0]*wA]);
+
+			var wB = (this.S[1].q[2]-this.S[1].qprev[2])/dt;
+
+			var vB =
+			[
+			(this.S[1].q[0]-this.S[1].qprev[0])/dt,
+			(this.S[1].q[1]-this.S[1].qprev[1])/dt
+			];
+
+			var vBP = numeric['+'](vB, [rB[1]*wB, -rB[0]*wB]);
+
+
+			//approaching velocities check
+			var vAB = numeric['-'](vBP, vAP);
+
+			if(numeric['dot'](vAB, this.manifold['n']) >= 0){
+				//moving away || retsing contacts. deal with later.
+				return;
+
+			} else {
+				//colliding.
+
+				var e = 1;
+
+				var numer = -(1+e) * numeric['dot'](vAB, this.manifold['n']);
+				
+
+				var rAxN = Xv(rA, this.manifold['n']);
+				var rBxN = Xv(rB, this.manifold['n']);
+			
+				var denum =
+				(this.S[0].invm+this.S[1].invm) +  
+				(rAxN*rAxN*this.S[0].invI) +  
+				(rBxN*rBxN*this.S[1].invI);
+
+				var j = (numer/denum);
+				var J = numeric['*'](j, this.manifold['n']);
+
+			
+				console.log(J);
+
+				//apply velocity adjustments
+				this.S[0].qprev = numeric['-'](
+					this.S[0].qprev,
+					[
+					J[0]*this.S[0].invm*dt,
+					J[1]*this.S[0].invm*dt,
+					0//j*Xv(rA,this.manifold['n'])*this.S[0].invI*dt
+					]
+				);
+				
+				
+				this.S[1].qprev = numeric['-'](
+					this.S[1].qprev,
+					[
+					-J[0]*this.S[1].invm*dt,
+					-J[1]*this.S[1].invm*dt,
+					0//-j*Xv(rB,this.manifold['n'])*this.S[1].invI*dt
+					]
+				);
+
+				
+			}
+			
 
 		}
 
@@ -446,10 +505,10 @@
 
 			//demo_chain();
 
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 200, -0.4], [80, 0, 0]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 300, 0.2], [80, 80, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 60, 60, [500, 300, 0], [0, 80, 0]); ++blabel;
-
+			B[blabel] = new box(blabel, 1, 40, 40, [360, 200, 0], [0, 0, 0]); ++blabel;
+			
 
 
 			//window.setInterval(timestep, 30);
@@ -483,13 +542,24 @@
 
 		function timestep(){
 			integrate();
+			render();
+
+			//alert('integrate');
+
 			constrain();
+			render();
+
+			//alert('constrain');
 
 			collide();
+			render();
+
+			//alert('collide');
 
 			velocity_correction();
-
 			render();
+
+			//alert('integrated!');
 		}
 	</script>
 </head>
