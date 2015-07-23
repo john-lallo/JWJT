@@ -47,7 +47,7 @@
 
 
 
-		var dt = 0.02;
+		var dt = 0.05;
 		var g = [0, 0, 0];
 
 
@@ -165,7 +165,7 @@
 		function rot(th, v){
 		return ([v[0]*Math.cos(th) + v[1]*Math.sin(th),	v[0]*Math.sin(th) - v[1]*Math.cos(th)]);
 		}
-		function Xv(u, v){
+		function X(u, v){
 			return (u[0]*v[0] - u[1]*v[1]);
 		}
 		//vector length squared (not used)
@@ -314,12 +314,39 @@
 
 			if(numeric['dot'](vAB, this.manifold['n']) >= 0){
 				//moving away || retsing contacts. deal with later.
+				console.log('NOT COLLIDING.');
 				return;
 
 			} else {
 				//colliding.
 
-				//COLLISION RESPONSE TBA				
+				var e = 1;
+				var j = -(1+e)*(numeric['dot'](vAB, this.manifold['n']));
+				j /= (
+					this.S[0].invm + this.S[1].invm +
+					Math.pow(X(rA, this.manifold['n'])*this.S[0].invI, 2) +
+					Math.pow(X(rB, this.manifold['n'])*this.S[1].invI, 2)
+					);
+
+				var J = numeric['*'](j, this.manifold['n']);
+
+				this.S[0].qprev = numeric['-'](
+					this.S[0].qprev,
+					[
+					-J[0]*this.S[0].invm*dt,
+					-J[1]*this.S[0].invm*dt,
+					X(rA, J)*this.S[0].invI*dt
+					]);
+
+
+				this.S[1].qprev = numeric['-'](
+					this.S[1].qprev,
+					[
+					J[0]*this.S[1].invm*dt,
+					J[1]*this.S[1].invm*dt,
+					X(rB, J)*this.S[1].invI*dt
+					]);
+
 			}
 			
 
@@ -366,12 +393,6 @@
 
 				var projD = Math.abs(numeric['dot'](d, axes[i]));
 
-				/*
-				console.log('a:' + projA);
-				console.log('b:' + projB);
-				console.log('d:' + projD);
-				*/
-
 				var e = projA + projB - projD;
 				if(e < 0){ return false; }
 				if(e < tmp['dL']){
@@ -382,10 +403,6 @@
 
 					var sign = 1;
 					if(numeric['dot'](d, tmp['n']) < 0){ tmp['n'] = numeric['*'](tmp['n'], -1); }
-
-					/* THIS IS VERY INCORRECT */
-					//tmp['rA'] = numeric['*']( sign * projA, tmp['n']);
-					//tmp['rB'] = numeric['*'](-sign * projB, tmp['n']);
 				}
 			}
 
@@ -413,7 +430,6 @@
 			}
 			}}
 
-			K.forEach(function(k){ k.solve(); });
 		}
 
 
@@ -422,23 +438,6 @@
 		var K = []; var klabel = 0; //collision constraints
 
 		/*
-		function demo_hinges(){
-
-			var Blab0 = blabel;
-
-			B[blabel] = new box(blabel, 1, 130, 10, [300, 300, 0], [10, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 130, [360, 360, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 130, 10, [300, 420, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 130, [240, 360, 0], [0, 0, 0]); ++blabel;
-
-
-			C[clabel] = new anchor_constraint(clabel, B[Blab0+2]); ++clabel;
-
-			C[clabel] = new rev_constraint(clabel, B[Blab0+0], B[Blab0+1], [360, 300]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[Blab0+1], B[Blab0+2], [360, 420]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[Blab0+2], B[Blab0+3], [240, 420]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[Blab0+3], B[Blab0+0], [240, 300]); ++clabel;
-		}
 
 		function demo_chain(){
 			var Blab0 = blabel;
@@ -466,9 +465,16 @@
 
 			//demo_chain();
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 200, -0.4], [80, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [400, 200, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 300, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [400, 300, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 400, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [400, 400, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [400, 500, 0], [0, 0, 0]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 40, 40, [360, 200, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [460, 510, 0], [-80, -150, 1.2]); ++blabel;
 			
 
 
@@ -503,24 +509,20 @@
 
 		function timestep(){
 			integrate();
-			render();
-
-			//alert('integrate');
 
 			constrain();
-			render();
-
-			//alert('constrain');
 
 			collide();
-			render();
 
-			//alert('collide');
+			//is this supposed to be here?
+			K.forEach(function(k){ k.solve(); });
+
 
 			velocity_correction();
+
+
 			render();
 
-			//alert('integrated!');
 		}
 	</script>
 </head>
