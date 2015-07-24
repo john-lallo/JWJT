@@ -9,6 +9,9 @@
 
 			color: #999;
 			background-color: #111;
+
+			font-family: monospace;
+			font-size: 12px;
 		}
 
 		#W {
@@ -30,6 +33,7 @@
 
 			position: absolute;
 		}
+
 	</style>
 
 	<script language = "javascript" src = "numeric.js"></script>
@@ -47,7 +51,7 @@
 
 
 
-		var dt = 0.05;
+		var dt = 0.1;
 		var g = [0, 0, 0];
 
 
@@ -85,6 +89,28 @@
 				+ (-this.q[1]) + 'px) rotate('
 				+ (-this.q[2]) + 'rad)'
 			});
+		}
+
+
+		//debugg marking function
+		var marklabel = 0;
+		function mark(q){
+
+			S = '<div id = "mark' + marklabel + '" style = "' +
+			'position: absolute; width: 4px; height: 4px; background-color: #fff;' +
+			'left: 0px;' +
+			'bottom: 0px;' +
+			'">' + marklabel + '</div>';
+
+			$('#W').append(S);
+			var elem = $('#mark' + marklabel);
+
+			elem.css({
+				'-webkit-transform' : 'translate('
+				+ q[0] + 'px, '
+				+ (-q[1]) + 'px)'
+			});
+			marklabel++;
 		}
 
 
@@ -163,11 +189,9 @@
 
 		//vector rotation (element form)
 		function rot(th, v){
-		return ([v[0]*Math.cos(th) + v[1]*Math.sin(th),	v[0]*Math.sin(th) - v[1]*Math.cos(th)]);
+		return ([v[0]*Math.cos(th) - v[1]*Math.sin(th),	v[0]*Math.sin(th) + v[1]*Math.cos(th)]);
 		}
-		function X(u, v){
-			return (u[0]*v[0] - u[1]*v[1]);
-		}
+		function X(u, v){ return (u[0]*v[0] - u[1]*v[1]); }
 		//vector length squared (not used)
 		//function L2(v){ return v[0]*v[0]+v[1]*v[1]; }
 
@@ -240,116 +264,79 @@
 		//velocity correction step
 		k_constraint.prototype.velocity = function(){
 
-			var d = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
+			/* velocity correction step TBA */
 
-			var rA = [0, 0];
-			var rB = [0, 0];
+			console.log(this.manifold['n']);
 
-			var k;
-			if(this.manifold['i'] < 2){ k = 1; } else { k = 0; }
+			//find best colliding edges.
+			var edge = [];
+			var enormals = [];
+			var vertices = [];
 
-			//select contact point.
-			var vertices = [
-				rot(this.S[k].q[2], [this.S[k].w/2, this.S[k].h/2]),
-				rot(this.S[k].q[2], [-this.S[k].w/2, this.S[k].h/2]),
-				rot(this.S[k].q[2], [-this.S[k].w/2, -this.S[k].h/2]),
-				rot(this.S[k].q[2], [this.S[k].w/2, -this.S[k].h/2])
-			];
+			var ref = 0; var inc = 0; var prodref = 0;
+			for(var k = 0; k < 2; ++k){
 
-			console.log('vertices:');
-			console.log(vertices);
+				enormals[k] = [
+					rot(this.S[k].q[2], [1, 0]),
+					rot(this.S[k].q[2], [0, 1]),
+					rot(this.S[k].q[2], [-1, 0]),
+					rot(this.S[k].q[2], [0, -1])
+				];
 
-			var maxdot = 0; var maxi = 0;
-			var dot = 0;
+				vertices[k] = [
+					rot(this.S[k].q[2], [this.S[k].w/2, -this.S[k].h/2]),
+					rot(this.S[k].q[2], [this.S[k].w/2, this.S[k].h/2]),
+					rot(this.S[k].q[2], [-this.S[k].w/2, this.S[k].h/2]),
+					rot(this.S[k].q[2], [-this.S[k].w/2, -this.S[k].h/2])
+				];
+				vertices[k][4] = vertices[k][0];
 
-			var sign = (k ? -1: 1);
+				var tmpi = 0; var tmpmax = 0; var s = (k ? -1 : 1);
+				for(var i = 0; i < 4; ++i){
+					var prod = s*numeric['dot'](enormals[k][i], this.manifold['n']);
+					if(prod > tmpmax){ tmpmax = prod; tmpi = i; }
+				}
 
-			for(var i = 0; i < 4; ++i){
-				dot = sign*numeric['dot'](vertices[i], this.manifold['n']);
-				if(dot > maxdot){ maxdot = dot; maxi = i; }
+				edge[k] = [
+				numeric['+'](this.S[k].q, vertices[k][tmpi]),
+				numeric['+'](this.S[k].q, vertices[k][tmpi+1])
+				];
+
+				//identify reference edge as most perpendicular edge
+				if(tmpmax > prodref){ prodref = tmpmax; ref = k; }
 			}
+			inc = (ref ? 0 : 1);
 
-			if(k){
-				console.log('UP HERE');
-				rB = vertices[maxi];
-				rA = numeric['+'](d, rB);
-			} else {
-				rA = vertices[maxi];
-				rB = numeric['-'](rA, d);
-			}
+			mark(edge[ref][0]);
+			mark(edge[ref][1]);
 
-			//acquire rA rB.
+			mark(edge[inc][0]);
+			mark(edge[inc][1]);
 
-			console.log('rA:');
-			console.log(rA);
-
-			console.log('rB:');
-			console.log(rB);
-
-
-
-			var wA = (this.S[0].q[2]-this.S[0].qprev[2])/dt;
-
-			var vA =
-			[
-			(this.S[0].q[0]-this.S[0].qprev[0])/dt,
-			(this.S[0].q[1]-this.S[0].qprev[1])/dt
-			];
-
-			var vAP = numeric['+'](vA, [rA[1]*wA, -rA[0]*wA]);
-
-			var wB = (this.S[1].q[2]-this.S[1].qprev[2])/dt;
-
-			var vB =
-			[
-			(this.S[1].q[0]-this.S[1].qprev[0])/dt,
-			(this.S[1].q[1]-this.S[1].qprev[1])/dt
-			];
-
-			var vBP = numeric['+'](vB, [rB[1]*wB, -rB[0]*wB]);
-
-
-			//approaching velocities check
-			var vAB = numeric['-'](vBP, vAP);
-
-			if(numeric['dot'](vAB, this.manifold['n']) >= 0){
-				//moving away || retsing contacts. deal with later.
-				console.log('NOT COLLIDING.');
-				return;
-
-			} else {
-				//colliding.
-
-				var e = 1;
-				var j = -(1+e)*(numeric['dot'](vAB, this.manifold['n']));
-				j /= (
-					this.S[0].invm + this.S[1].invm +
-					Math.pow(X(rA, this.manifold['n'])*this.S[0].invI, 2) +
-					Math.pow(X(rB, this.manifold['n'])*this.S[1].invI, 2)
-					);
-
-				var J = numeric['*'](j, this.manifold['n']);
-
-				this.S[0].qprev = numeric['-'](
-					this.S[0].qprev,
-					[
-					-J[0]*this.S[0].invm*dt,
-					-J[1]*this.S[0].invm*dt,
-					X(rA, J)*this.S[0].invI*dt
-					]);
-
-
-				this.S[1].qprev = numeric['-'](
-					this.S[1].qprev,
-					[
-					J[0]*this.S[1].invm*dt,
-					J[1]*this.S[1].invm*dt,
-					X(rB, J)*this.S[1].invI*dt
-					]);
-
-			}
+			console.log('ref: ' + ref + ' inc: ' + inc);
 			
 
+			//clipping
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+			return;
 		}
 
 
@@ -357,7 +344,6 @@
 		function box_to_box(A, B){
 			//Separate Axis Thm.
 			
-
 			var diagA1 = rot(A.q[2], [A.w/2, A.h/2]);
 			var diagA2 = rot(A.q[2], [A.w/2, -A.h/2]);
 
@@ -375,9 +361,7 @@
 
 			var tmp = [];
 
-			tmp['i'] = 0;
-			tmp['n'] = axes[0];
-			tmp['dL'] = 1e+9;
+			tmp['i'] = 0; tmp['n'] = axes[0]; tmp['dL'] = 1e+9;
 
 			for(var i = 0; i < 4; ++i){
 
@@ -406,9 +390,6 @@
 				}
 			}
 
-
-			console.log('bleuuuurgh');
-
 			return tmp;
 		}
 
@@ -424,6 +405,7 @@
 					var k = box_to_box(B[i], B[j]);
 
 					if(k){
+						console.log('collision between: ' + i + ' ' + j);
 						K[klabel] = new k_constraint(klabel, B[i], B[j], k); ++klabel;
 					}
 
@@ -463,7 +445,7 @@
 			console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
 
 
-			//demo_chain();
+			B[blabel] = new box(blabel, 1, 40, 40, [310, 544, 0], [120, -50, 1]); ++blabel;
 
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 200, 0], [0, 0, 0]); ++blabel;
@@ -474,8 +456,6 @@
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 500, 0], [0, 0, 0]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 40, 40, [460, 510, 0], [-80, -150, 1.2]); ++blabel;
-			
 
 
 			//window.setInterval(timestep, 30);
@@ -515,7 +495,7 @@
 			collide();
 
 			//is this supposed to be here?
-			K.forEach(function(k){ k.solve(); });
+			//K.forEach(function(k){ k.solve(); });
 
 
 			velocity_correction();
