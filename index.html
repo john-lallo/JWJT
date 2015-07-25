@@ -238,117 +238,52 @@
 
 
 		//constraint: collision constraint
-		function k_constraint(i, A, B, manifold){
-
+		function k_constraint(i, A, B, contact){
 			constraint.call(this, i, [A, B]);
-
-			this.manifold = manifold; //unit penetration vector
+			this.contact = contact;
 		}
 		k_constraint.prototype = Object.create(constraint.prototype);
 		k_constraint.prototype.constructor = k_constraint;
 
+		k_constraint.prototype.solve = function(){
+			this.C();
+		}
+
 		k_constraint.prototype.C = function(){
-			return; //TBA;
+			console.log('C');
+			var d = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
+			var rA; var rB;
+			if(this.contact['inc'] == 0){
+				rA = rot(this.S[0].q[2], this.contact['Rinc']);
+				rB = numeric['-'](rA, d);
+
+				//mark([this.S[0].q[0]+rA[0], this.S[0].q[1]+rA[1]]);
+				//mark([this.S[1].q[0]+rB[0], this.S[1].q[1]+rB[1]]);
+
+			} else {
+				rB = rot(this.S[1].q[2], this.contact['Rinc']);
+				rA = numeric['+'](d, rB);
+
+				//mark([this.S[0].q[0]+rA[0], this.S[0].q[1]+rA[1]]);
+				//mark([this.S[1].q[0]+rB[0], this.S[1].q[1]+rB[1]]);
+			}
+
+			console.log(this.contact['n']);
+			console.log([(this.S[0].q[0]+rA[0]-this.S[1].q[0]-rB[0]),
+			(this.S[0].q[1]+rA[1]-this.S[1].q[1]-rB[1])]);
+
+			return numeric['dot'](
+			[(this.S[0].q[0]+rA[0]-this.S[1].q[0]-rB[0]),
+			(this.S[0].q[1]+rA[1]-this.S[1].q[1]-rB[1])],
+			this.contact['n']
+			);
+//TBA;
 		}
 
-		
-		k_constraint.prototype.velocity = function(){
 
 
-			console.log(this.manifold['n']);
 
-			//find best colliding edges.
-			var edge = [];
-			var enormals = [];
-			var vertices = [];
 
-			var ref = 0; var inc = 0; var prodref = 0;
-			for(var k = 0; k < 2; ++k){
-
-				enormals[k] = [
-					rot(this.S[k].q[2], [1, 0]),
-					rot(this.S[k].q[2], [0, 1]),
-					rot(this.S[k].q[2], [-1, 0]),
-					rot(this.S[k].q[2], [0, -1])
-				];
-
-				vertices[k] = [
-					rot(this.S[k].q[2], [this.S[k].w/2, -this.S[k].h/2]),
-					rot(this.S[k].q[2], [this.S[k].w/2, this.S[k].h/2]),
-					rot(this.S[k].q[2], [-this.S[k].w/2, this.S[k].h/2]),
-					rot(this.S[k].q[2], [-this.S[k].w/2, -this.S[k].h/2])
-				];
-				vertices[k][4] = vertices[k][0];
-
-				var tmpi = 0; var tmpmax = 0; var s = (k ? -1 : 1);
-				for(var i = 0; i < 4; ++i){
-					var prod = s*numeric['dot'](enormals[k][i], this.manifold['n']);
-					if(prod > tmpmax){ tmpmax = prod; tmpi = i; }
-				}
-
-				edge[k] = [
-				numeric['+'](this.S[k].q, vertices[k][tmpi]),
-				numeric['+'](this.S[k].q, vertices[k][tmpi+1])
-				];
-
-				//identify reference edge as most perpendicular edge
-				if(tmpmax > prodref){ prodref = tmpmax; ref = k; }
-			}
-			inc = (ref ? 0 : 1);
-
-			/*
-			mark(edge[ref][0]);
-			mark(edge[ref][1]);
-
-			mark(edge[inc][0]);
-			mark(edge[inc][1]);
-			*/
-
-			console.log('ref: ' + ref + ' inc: ' + inc);
-
-			//clipping
-			var r0i0 = numeric['-'](edge[inc][0], edge[ref][0]);
-			var r0i1 = numeric['-'](edge[inc][1], edge[ref][0]);
-			var r1i0 = numeric['-'](edge[inc][0], edge[ref][1]);
-			var r1i1 = numeric['-'](edge[inc][1], edge[ref][1]);
-
-			var flag0 = X(this.manifold['n'], numeric['-'](edge[inc][0], edge[ref][0]))*
-						X(this.manifold['n'], numeric['-'](edge[inc][1], edge[ref][0]));
-
-			var flag1 = X(this.manifold['n'], numeric['-'](edge[inc][0], edge[ref][1]))*
-						X(this.manifold['n'], numeric['-'](edge[inc][1], edge[ref][1]));
-
-			if(flag0 < 0){
-				//incident edge: opposite sides of 0 limit
-				console.log('clip 0');
-
-				var a = X(numeric['-'](edge[ref][0], edge[inc][1]), this.manifold['n'])/
-						X(numeric['-'](edge[inc][0], edge[inc][1]), this.manifold['n']);
-
-				edge[inc][1] = [
-								edge[inc][1][0]*(1-a)+edge[inc][0][0]*a,
-								edge[inc][1][1]*(1-a)+edge[inc][0][1]*a
-								];
-			}
-
-			if(flag1 < 0){
-				//incident edge: opposite sides of 1 limit
-				console.log('clip 1');
-	
-				var a = X(numeric['-'](edge[ref][1], edge[inc][1]), this.manifold['n'])/
-						X(numeric['-'](edge[inc][0], edge[inc][1]), this.manifold['n']);
-
-				edge[inc][0] = [
-								edge[inc][1][0]*(1-a)+edge[inc][0][0]*a,
-								edge[inc][1][1]*(1-a)+edge[inc][0][1]*a
-								];
-			}
-
-			mark(edge[inc][0]);
-			mark(edge[inc][1]);
-
-			return;
-		}
 
 
 		//collision detection
@@ -401,8 +336,142 @@
 				}
 			}
 
-			return tmp;
+			//contact generations
+			var res = generate_contacts(A, B, tmp);
+			return res;
 		}
+		
+		//generate contact points from manifold an colliding shapes.
+		function generate_contacts(A, B, manifold){
+
+			var S = [A, B];
+
+			//find best colliding edges.
+			var edge = [];
+			var enormals = [];
+			var vertices = [];
+
+			var ref = 0; var inc = 0; var prodref = 0;
+			for(var k = 0; k < 2; ++k){
+
+				enormals[k] = [
+					rot(S[k].q[2], [1, 0]),
+					rot(S[k].q[2], [0, 1]),
+					rot(S[k].q[2], [-1, 0]),
+					rot(S[k].q[2], [0, -1])
+				];
+
+				vertices[k] = [
+					rot(S[k].q[2], [S[k].w/2, -S[k].h/2]),
+					rot(S[k].q[2], [S[k].w/2, S[k].h/2]),
+					rot(S[k].q[2], [-S[k].w/2, S[k].h/2]),
+					rot(S[k].q[2], [-S[k].w/2, -S[k].h/2])
+				];
+				vertices[k][4] = vertices[k][0];
+
+				var tmpi = 0; var tmpmax = 0; var s = (k ? -1 : 1);
+				for(var i = 0; i < 4; ++i){
+					var prod = s*numeric['dot'](enormals[k][i], manifold['n']);
+					if(prod > tmpmax){ tmpmax = prod; tmpi = i; }
+				}
+
+				edge[k] = [
+				numeric['+'](S[k].q, vertices[k][tmpi]),
+				numeric['+'](S[k].q, vertices[k][tmpi+1])
+				];
+
+				//identify reference edge as most perpendicular edge
+				if(tmpmax > prodref){ prodref = tmpmax; ref = k; }
+			}
+			inc = (ref ? 0 : 1);
+
+			/*
+			mark(edge[ref][0]);
+			mark(edge[ref][1]);
+
+			mark(edge[inc][0]);
+			mark(edge[inc][1]);
+			*/
+
+			console.log('ref: ' + ref + ' inc: ' + inc);
+
+			//clipping
+			var flag0 = X(manifold['n'], numeric['-'](edge[inc][0], edge[ref][0]))*
+						X(manifold['n'], numeric['-'](edge[inc][1], edge[ref][0]));
+
+			var flag1 = X(manifold['n'], numeric['-'](edge[inc][0], edge[ref][1]))*
+						X(manifold['n'], numeric['-'](edge[inc][1], edge[ref][1]));
+
+			if(flag0 < 0){
+				//incident edge: opposite sides of 0 limit
+				console.log('clip 0');
+
+				var a = X(numeric['-'](edge[ref][0], edge[inc][1]), manifold['n'])/
+						X(numeric['-'](edge[inc][0], edge[inc][1]), manifold['n']);
+
+				edge[inc][1] = [
+								edge[inc][1][0]*(1-a)+edge[inc][0][0]*a,
+								edge[inc][1][1]*(1-a)+edge[inc][0][1]*a
+								];
+			}
+
+			if(flag1 < 0){
+				//incident edge: opposite sides of 1 limit
+				console.log('clip 1');
+	
+				var a = X(numeric['-'](edge[ref][1], edge[inc][1]), manifold['n'])/
+						X(numeric['-'](edge[inc][0], edge[inc][1]), manifold['n']);
+
+				edge[inc][0] = [
+								edge[inc][1][0]*(1-a)+edge[inc][0][0]*a,
+								edge[inc][1][1]*(1-a)+edge[inc][0][1]*a
+								];
+			}
+
+			//select only penetrating points
+			var data = [];
+			var cont = 0;
+			if(X(
+			numeric['-'](edge[ref][1], edge[ref][0]),
+			numeric['-'](edge[inc][0], edge[ref][0])) > 0){
+
+				data[cont] = [];
+
+				data[cont]['n'] = manifold['n'];
+				data[cont]['P'] = edge[inc][0];
+				data[cont]['inc'] = inc;
+				data[cont]['Rinc'] =
+				rot(-S[inc].q[2], numeric['-'](edge[inc][0], S[inc].q));
+
+				//mark(edge[inc][0]);
+
+				++cont;
+			}
+
+			if(X(
+			numeric['-'](edge[ref][1], edge[ref][0]),
+			numeric['-'](edge[inc][1], edge[ref][0])) > 0){
+				data[cont] = [];
+
+				data[cont]['n'] = manifold['n'];
+				data[cont]['P'] = edge[inc][1];
+				data[cont]['inc'] = inc;
+				data[cont]['Rinc'] =
+				rot(-S[inc].q[2], numeric['-'](edge[inc][1], S[inc].q));
+
+				//mark(edge[inc][1]);
+
+				++cont;
+			}
+
+			
+			
+
+			return data;
+		}
+
+
+
 
 		function collide(){
 
@@ -413,11 +482,17 @@
 			for(var j = i+1; j < B.length; ++j){
 			if(B[i] && B[j]){
 
-					var k = box_to_box(B[i], B[j]);
+					var res = box_to_box(B[i], B[j]);
 
-					if(k){
+					if(res === false){ /* no collision */ }
+					else {
 						console.log('collision between: ' + i + ' ' + j);
-						K[klabel] = new k_constraint(klabel, B[i], B[j], k); ++klabel;
+						res.forEach(function(r){
+
+						//mark(r['P']);
+
+						K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel;
+						});	
 					}
 					
 
@@ -431,25 +506,6 @@
 		var C = []; var clabel = 0; //static constraints
 		var K = []; var klabel = 0; //collision constraints
 
-		/*
-
-		function demo_chain(){
-			var Blab0 = blabel;
-
-			B[blabel] = new box(blabel, 1, 10, 70, [600, 600, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [600, 540, 0], [20, 0, 0.2]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [600, 480, 0], [40, 0, 0.4]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [600, 420, 0], [60, 0, 0.6]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [600, 360, 0], [80, 0, 0.8]); ++blabel;
-
-			C[clabel] = new anchor_constraint(clabel, B[Blab0+0]); ++clabel;
-
-			C[clabel] = new rev_constraint(clabel, B[Blab0+0], B[Blab0+1], [600, 570]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[Blab0+1], B[Blab0+2], [600, 510]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[Blab0+2], B[Blab0+3], [600, 450]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[Blab0+3], B[Blab0+4], [600, 390]); ++clabel;
-		}
-		*/
 
 		$(document).ready(function(){
 
@@ -465,9 +521,8 @@
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 300, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 400, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, -2]); ++blabel;
+			B[blabel] = new box(blabel, 1, 80, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 500, 0], [0, 0, 0]); ++blabel;
-
 
 
 			//window.setInterval(timestep, 30);
@@ -494,7 +549,7 @@
 		}
 
 		function velocity_correction(){
-			K.forEach(function(k){ k.velocity(); });
+			K.forEach(function(k){ /*k.velocity();*/ });
 		}
 
 		function render(){ B.forEach(function(b){ b.sync(); }); }
@@ -507,10 +562,10 @@
 			collide();
 
 			//is this supposed to be here?
-			//K.forEach(function(k){ k.solve(); });
+			K.forEach(function(k){ k.solve(); });
 
 
-			velocity_correction();
+			//velocity_correction();
 
 
 			render();
