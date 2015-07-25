@@ -51,8 +51,8 @@
 
 
 
-		var dt = 0.1;
-		var g = [0, 0, 0];
+		var dt = 0.05;
+		var g = [0, -98, 0];
 
 
 
@@ -236,51 +236,87 @@
 		anchor_constraint.prototype.solve = function(){ this.S[0].q = this.P; }
 
 
-
 		//constraint: collision constraint
+		
 		function k_constraint(i, A, B, contact){
-			constraint.call(this, i, [A, B]);
+			this.i = i;	//index
+			this.S = [A, B]; //member bodies
 			this.contact = contact;
-		}
-		k_constraint.prototype = Object.create(constraint.prototype);
-		k_constraint.prototype.constructor = k_constraint;
 
-		k_constraint.prototype.solve = function(){
-			this.C();
-		}
+			this.rA = null; this.rB = null;
+			this.d = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
 
-		k_constraint.prototype.C = function(){
-			console.log('C');
-			var d = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
-			var rA; var rB;
 			if(this.contact['inc'] == 0){
-				rA = rot(this.S[0].q[2], this.contact['Rinc']);
-				rB = numeric['-'](rA, d);
+				this.rA = rot(this.S[0].q[2], this.contact['Rinc']);
+				this.rB = numeric['-'](this.rA, this.d);
 
 				//mark([this.S[0].q[0]+rA[0], this.S[0].q[1]+rA[1]]);
 				//mark([this.S[1].q[0]+rB[0], this.S[1].q[1]+rB[1]]);
 
 			} else {
-				rB = rot(this.S[1].q[2], this.contact['Rinc']);
-				rA = numeric['+'](d, rB);
+				this.rB = rot(this.S[1].q[2], this.contact['Rinc']);
+				this.rA = numeric['+'](this.d, this.rB);
 
 				//mark([this.S[0].q[0]+rA[0], this.S[0].q[1]+rA[1]]);
 				//mark([this.S[1].q[0]+rB[0], this.S[1].q[1]+rB[1]]);
 			}
 
-			console.log(this.contact['n']);
-			console.log([(this.S[0].q[0]+rA[0]-this.S[1].q[0]-rB[0]),
-			(this.S[0].q[1]+rA[1]-this.S[1].q[1]-rB[1])]);
-
-			return numeric['dot'](
-			[(this.S[0].q[0]+rA[0]-this.S[1].q[0]-rB[0]),
-			(this.S[0].q[1]+rA[1]-this.S[1].q[1]-rB[1])],
-			this.contact['n']
-			);
-//TBA;
 		}
 
 
+		k_constraint.prototype.solve = function(){
+
+			var vA = [
+			(this.S[0].q[0]-this.S[0].qprev[0])/dt,
+			(this.S[0].q[1]-this.S[0].qprev[1])/dt
+			];
+			var wA = (this.S[0].q[2]-this.S[0].qprev[2])/dt
+
+			var vB = [
+			(this.S[1].q[0]-this.S[1].qprev[0])/dt,
+			(this.S[1].q[1]-this.S[1].qprev[1])/dt
+			];
+
+			var wB = (this.S[1].q[2]-this.S[1].qprev[2])/dt
+
+			var vAB = numeric['-'](
+			numeric['+'](vB, [wB*vB[1], -wB*vB[0]]),
+			numeric['+'](vA, [wA*vA[1], -wA*vA[0]])
+			)
+
+			var xA = X(this.rA, this.contact['n']);
+			var xB = X(this.rB, this.contact['n']);
+
+			var K = 
+			(
+			this.S[0].invm + this.S[1].invm +
+			xA*xA*this.S[0].invI +
+			xB*xB*this.S[1].invI
+			);
+
+
+			//impulses
+			var j = -(numeric['dot'](vAB, this.contact['n'])+0.1)/K;
+
+			this.dvA = [
+				j*this.S[0].invm*dt,
+				j*this.S[0].invm*dt,
+				X(this.rA, this.contact['n'])*j*this.S[0].invI*dt
+			]
+			console.log(this.dvA);
+
+			this.dvB = [
+				-j*this.S[1].invm*dt,
+				-j*this.S[1].invm*dt,
+				X(this.rB, this.contact['n'])*j*this.S[1].invI*dt
+			]
+			console.log(this.dvB);
+
+			//apply impulses
+			this.S[0].qprev = numeric['-'](this.S[0].q, this.dvA);
+			this.S[1].qprev = numeric['-'](this.S[1].q, this.dvB);
+		}
+		
 
 
 
@@ -464,8 +500,6 @@
 				++cont;
 			}
 
-			
-			
 
 			return data;
 		}
@@ -475,8 +509,7 @@
 
 		function collide(){
 
-			K = [];
-			klabel = 0;
+			K = [];	klabel = 0;
 
 			for(var i = 0; i < B.length; ++i){
 			for(var j = i+1; j < B.length; ++j){
@@ -488,11 +521,8 @@
 					else {
 						console.log('collision between: ' + i + ' ' + j);
 						res.forEach(function(r){
-
-						//mark(r['P']);
-
-						K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel;
-						});	
+							K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel; 
+						});
 					}
 					
 
@@ -513,15 +543,15 @@
 			console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
 
 
-			B[blabel] = new box(blabel, 1, 40, 40, [310, 548, 0], [-120, -80, -6]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [310, 568, 0.7], [0, -60, 0]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 80, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 200, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 300, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 300, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 400, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 80, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 500, 0], [0, 0, 0]); ++blabel;
 
 
@@ -534,6 +564,7 @@
 			B.forEach(function(b){
 				//verlet step
 				var a = g;
+				if(b.i == 1){ a = 0; }
 				qnext = numeric['+'](numeric['-'](numeric['*'](2, b.q), b.qprev), numeric['*'](dt*dt, a));
 				b.qprev = b.q; b.q = qnext;
 			});
@@ -555,17 +586,14 @@
 		function render(){ B.forEach(function(b){ b.sync(); }); }
 
 		function timestep(){
-			integrate();
 
+			//position update & constraint step
+			integrate();
 			constrain();
 
+
 			collide();
-
-			//is this supposed to be here?
 			K.forEach(function(k){ k.solve(); });
-
-
-			//velocity_correction();
 
 
 			render();
