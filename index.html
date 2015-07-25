@@ -98,8 +98,8 @@
 
 			S = '<div id = "mark' + marklabel + '" style = "' +
 			'position: absolute; width: 4px; height: 4px; background-color: #fff;' +
-			'left: 0px;' +
-			'bottom: 0px;' +
+			'left: -2px;' +
+			'bottom: -2px;' +
 			'">' + marklabel + '</div>';
 
 			$('#W').append(S);
@@ -191,7 +191,7 @@
 		function rot(th, v){
 		return ([v[0]*Math.cos(th) - v[1]*Math.sin(th),	v[0]*Math.sin(th) + v[1]*Math.cos(th)]);
 		}
-		function X(u, v){ return (u[0]*v[0] - u[1]*v[1]); }
+		function X(u, v){ return (u[0]*v[1] - u[1]*v[0]); }
 		//vector length squared (not used)
 		//function L2(v){ return v[0]*v[0]+v[1]*v[1]; }
 
@@ -243,28 +243,17 @@
 			constraint.call(this, i, [A, B]);
 
 			this.manifold = manifold; //unit penetration vector
-
-			this.targL = 
-			Math.abs(numeric['dot'](
-				[this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]],
-				this.manifold['n']
-			)) + this.manifold['dL']; //target distance.
-
 		}
 		k_constraint.prototype = Object.create(constraint.prototype);
 		k_constraint.prototype.constructor = k_constraint;
 
 		k_constraint.prototype.C = function(){
-			
-			var L = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
-
-			return (Math.abs(numeric['dot'](L, this.manifold['n'])) - this.targL);
+			return; //TBA;
 		}
 
-		//velocity correction step
+		
 		k_constraint.prototype.velocity = function(){
 
-			/* velocity correction step TBA */
 
 			console.log(this.manifold['n']);
 
@@ -307,34 +296,56 @@
 			}
 			inc = (ref ? 0 : 1);
 
+			/*
 			mark(edge[ref][0]);
 			mark(edge[ref][1]);
 
 			mark(edge[inc][0]);
 			mark(edge[inc][1]);
+			*/
 
 			console.log('ref: ' + ref + ' inc: ' + inc);
-			
 
 			//clipping
+			var r0i0 = numeric['-'](edge[inc][0], edge[ref][0]);
+			var r0i1 = numeric['-'](edge[inc][1], edge[ref][0]);
+			var r1i0 = numeric['-'](edge[inc][0], edge[ref][1]);
+			var r1i1 = numeric['-'](edge[inc][1], edge[ref][1]);
 
+			var flag0 = X(this.manifold['n'], numeric['-'](edge[inc][0], edge[ref][0]))*
+						X(this.manifold['n'], numeric['-'](edge[inc][1], edge[ref][0]));
 
+			var flag1 = X(this.manifold['n'], numeric['-'](edge[inc][0], edge[ref][1]))*
+						X(this.manifold['n'], numeric['-'](edge[inc][1], edge[ref][1]));
 
+			if(flag0 < 0){
+				//incident edge: opposite sides of 0 limit
+				console.log('clip 0');
 
+				var a = X(numeric['-'](edge[ref][0], edge[inc][1]), this.manifold['n'])/
+						X(numeric['-'](edge[inc][0], edge[inc][1]), this.manifold['n']);
 
+				edge[inc][1] = [
+								edge[inc][1][0]*(1-a)+edge[inc][0][0]*a,
+								edge[inc][1][1]*(1-a)+edge[inc][0][1]*a
+								];
+			}
 
+			if(flag1 < 0){
+				//incident edge: opposite sides of 1 limit
+				console.log('clip 1');
+	
+				var a = X(numeric['-'](edge[ref][1], edge[inc][1]), this.manifold['n'])/
+						X(numeric['-'](edge[inc][0], edge[inc][1]), this.manifold['n']);
 
+				edge[inc][0] = [
+								edge[inc][1][0]*(1-a)+edge[inc][0][0]*a,
+								edge[inc][1][1]*(1-a)+edge[inc][0][1]*a
+								];
+			}
 
-
-
-
-
-
-
-
-
-
-
+			mark(edge[inc][0]);
+			mark(edge[inc][1]);
 
 			return;
 		}
@@ -408,6 +419,7 @@
 						console.log('collision between: ' + i + ' ' + j);
 						K[klabel] = new k_constraint(klabel, B[i], B[j], k); ++klabel;
 					}
+					
 
 			}
 			}}
@@ -445,7 +457,7 @@
 			console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
 
 
-			B[blabel] = new box(blabel, 1, 40, 40, [310, 544, 0], [120, -50, 1]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [310, 548, 0], [-120, -80, -6]); ++blabel;
 
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 200, 0], [0, 0, 0]); ++blabel;
@@ -453,7 +465,7 @@
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 300, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 400, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, -2]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 500, 0], [0, 0, 0]); ++blabel;
 
 
