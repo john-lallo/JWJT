@@ -224,6 +224,45 @@
 		}
 
 
+
+		//constraint: dist constraint
+		function dist_constraint(i, A, B, PA, PB){
+			constraint.call(this, i, [A, B]);
+
+			this.rA = numeric['-'](PA, [this.S[0].q[0], this.S[0].q[1]]);
+			this.rA = rot(-this.S[0].q[2], this.rA);
+
+			this.rB = numeric['-'](PB, [this.S[1].q[0], this.S[1].q[1]]);
+			this.rB = rot(-this.S[1].q[2], this.rB);
+
+			this.d = numeric['-'](PB, PA);
+			this.d = numeric['dot'](this.d, this.d);
+		}
+		dist_constraint.prototype = Object.create(constraint.prototype);
+		dist_constraint.prototype.constructor = dist_constraint;
+
+		dist_constraint.prototype.D = function(){
+			var D = numeric['-'](
+				numeric['+'](
+					[this.S[0].q[0], this.S[0].q[1]],
+					rot(this.S[0].q[2], this.rA)
+				),
+				numeric['+'](
+					[this.S[1].q[0], this.S[1].q[1]],
+					rot(this.S[1].q[2], this.rB)
+				)
+			);
+			return numeric['dot'](D, D);
+		}
+		dist_constraint.prototype.C = function(){
+			var D = this.D();
+
+			return D - this.d;
+		}
+
+
+
+
 		//constraint: anchor constraint
 		function anchor_constraint(i, A){
 			constraint.call(this, i, [A]);
@@ -236,8 +275,95 @@
 		anchor_constraint.prototype.solve = function(){ this.S[0].q = this.P; }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 		//constraint: collision constraint
-		
+		function k_constraint(i, A, B, data){
+			constraint.call(this, i, [A, B]);
+
+			this.data = data;
+
+			if(data['inc'] == 0){
+				this.rA = this.data['Rinc'];
+				this.rB = this.data['refN'];
+			} else {
+				this.rA = this.data['refN'];
+				this.rB = this.data['Rinc'];
+			}
+
+			
+			if((this.S[0].i == 3)||(this.S[1].i == 3)){
+
+				mark(numeric['+'](
+					[this.S[0].q[0], this.S[0].q[1]],
+					rot(this.S[0].q[2], this.rA)
+				));
+				mark(numeric['+'](
+					[this.S[1].q[0], this.S[1].q[1]],
+					rot(this.S[1].q[2], this.rB)
+				));
+
+			}
+			
+
+		}
+		k_constraint.prototype = Object.create(constraint.prototype);
+		k_constraint.prototype.constructor = k_constraint;
+
+		k_constraint.prototype.D = function(){
+			var rA = rot(this.S[0].q[2], this.rA);
+			var rB = rot(this.S[1].q[2], this.rB);
+
+			return numeric['dot'](
+			numeric['-'](
+				[this.S[0].q[0]+rA[0], this.S[0].q[1]+rA[1]],
+				[this.S[1].q[0]+rB[0], this.S[1].q[1]+rB[1]]
+			), this.data['n']);
+		}
+
+		k_constraint.prototype.condition = function(){ return this.D() > 0; }
+
+		k_constraint.prototype.C = function(){
+
+			var D = this.D();
+
+			if((this.S[0].i == 3)||(this.S[1].i == 3)){ console.log(D); }
+
+			return D;
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		/*
 		function k_constraint(i, A, B, contact){
 			this.i = i;	//index
 			this.S = [A, B]; //member bodies
@@ -316,7 +442,7 @@
 			this.S[0].qprev = numeric['-'](this.S[0].q, this.dvA);
 			this.S[1].qprev = numeric['-'](this.S[1].q, this.dvB);
 		}
-		
+		*/
 
 
 
@@ -388,6 +514,9 @@
 			var vertices = [];
 
 			var ref = 0; var inc = 0; var prodref = 0;
+
+			var refN;
+
 			for(var k = 0; k < 2; ++k){
 
 				enormals[k] = [
@@ -417,17 +546,17 @@
 				];
 
 				//identify reference edge as most perpendicular edge
-				if(tmpmax > prodref){ prodref = tmpmax; ref = k; }
+				if(tmpmax > prodref){
+					prodref = tmpmax; ref = k;
+
+					refN = numeric['*'](
+							1/2,
+							numeric['+'](vertices[k][tmpi], vertices[k][tmpi+1])
+							);
+
+				}
 			}
 			inc = (ref ? 0 : 1);
-
-			/*
-			mark(edge[ref][0]);
-			mark(edge[ref][1]);
-
-			mark(edge[inc][0]);
-			mark(edge[inc][1]);
-			*/
 
 			console.log('ref: ' + ref + ' inc: ' + inc);
 
@@ -440,7 +569,6 @@
 
 			if(flag0 < 0){
 				//incident edge: opposite sides of 0 limit
-				console.log('clip 0');
 
 				var a = X(numeric['-'](edge[ref][0], edge[inc][1]), manifold['n'])/
 						X(numeric['-'](edge[inc][0], edge[inc][1]), manifold['n']);
@@ -453,7 +581,6 @@
 
 			if(flag1 < 0){
 				//incident edge: opposite sides of 1 limit
-				console.log('clip 1');
 	
 				var a = X(numeric['-'](edge[ref][1], edge[inc][1]), manifold['n'])/
 						X(numeric['-'](edge[inc][0], edge[inc][1]), manifold['n']);
@@ -479,6 +606,8 @@
 				data[cont]['Rinc'] =
 				rot(-S[inc].q[2], numeric['-'](edge[inc][0], S[inc].q));
 
+				data[cont]['refN'] = rot(-S[ref].q[2], refN);
+
 				//mark(edge[inc][0]);
 
 				++cont;
@@ -494,6 +623,8 @@
 				data[cont]['inc'] = inc;
 				data[cont]['Rinc'] =
 				rot(-S[inc].q[2], numeric['-'](edge[inc][1], S[inc].q));
+
+				data[cont]['refN'] = rot(-S[ref].q[2], refN);
 
 				//mark(edge[inc][1]);
 
@@ -519,7 +650,7 @@
 
 					if(res === false){ /* no collision */ }
 					else {
-						console.log('collision between: ' + i + ' ' + j);
+						//console.log('collision between: ' + i + ' ' + j);
 						res.forEach(function(r){
 							K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel; 
 						});
@@ -543,17 +674,22 @@
 			console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
 
 
-			B[blabel] = new box(blabel, 1, 40, 40, [310, 568, 0.7], [0, -60, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 560, 0], [30, -80, 0]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 80, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 2], [0, 0, 0]); ++blabel;
+
+			//C[clabel] = new dist_constraint(clabel, B[0], B[1], [280, 540], [280, 520]); ++clabel
+
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 200, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 300, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 300, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 500, 0], [0, 0, 0]); ++blabel;
 
+			B[blabel] = new box(blabel, 1, 50, 40, [360, 280, 0.001], [0, 0, 0]); ++blabel;
+
+			B[blabel] = new box(blabel, 1, 40, 40, [700, 300, 0], [0, 0, 2]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [600, 400, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [700, 400, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [700, 500, 0], [0, 0, 0]); ++blabel;
+
+			B[blabel] = new box(blabel, 1e+12, 80, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
 
 			//window.setInterval(timestep, 30);
 
@@ -564,7 +700,7 @@
 			B.forEach(function(b){
 				//verlet step
 				var a = g;
-				if(b.i == 1){ a = 0; }
+				if(b.i == 8){ a = 0; }
 				qnext = numeric['+'](numeric['-'](numeric['*'](2, b.q), b.qprev), numeric['*'](dt*dt, a));
 				b.qprev = b.q; b.q = qnext;
 			});
@@ -579,10 +715,6 @@
 			}
 		}
 
-		function velocity_correction(){
-			K.forEach(function(k){ /*k.velocity();*/ });
-		}
-
 		function render(){ B.forEach(function(b){ b.sync(); }); }
 
 		function timestep(){
@@ -593,8 +725,9 @@
 
 
 			collide();
-			K.forEach(function(k){ k.solve(); });
-
+			for(var i = 0; i < 12; ++i){
+				K.forEach(function(k){ k.solve(); });
+			}
 
 			render();
 
