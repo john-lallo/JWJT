@@ -277,10 +277,6 @@
 		anchor_constraint.prototype.solve = function(){ this.S[0].q = this.P; }
 
 
-
-
-
-
 		//constraint: collision constraint
 		function k_constraint(i, A, B, data){
 			constraint.call(this, i, [A, B]);
@@ -298,10 +294,6 @@
 		}
 		k_constraint.prototype = Object.create(constraint.prototype);
 		k_constraint.prototype.constructor = k_constraint;
-
-		k_constraint.prototype.D = function(){
-			
-		}
 
 		k_constraint.prototype.condition = function(){ return this.C() > 0; }
 
@@ -547,7 +539,7 @@
 
 			B[blabel] = new box(blabel, 1e+12, 80, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
 
-			//window.setInterval(timestep, 30);
+			window.setInterval(timestep, 30);
 
 		});
 
