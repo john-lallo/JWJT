@@ -42,6 +42,26 @@
 	<script language = "javascript" src = "jquery-2.1.4.min.js"></script>
 
 	<script language = "javascript">
+		var disjoint = function(){
+			this.parentOf = [];
+		}
+
+		disjoint.prototype.find = function(x){
+			if (this.parentOf[x] == x){ return x; }
+			else { this.parentOf[x] = this.find(this.parentOf[x]); return this.parentOf[x]; } 
+		}
+
+		disjoint.prototype.unite = function(a, b){
+			var A = this.find(a);
+			var B = this.find(b);
+
+			if(A == B) return;
+
+			this.parentOf[B] = A;
+		}
+	</script>
+
+	<script language = "javascript">
 
 		var E = {
 			w: function(){ return $('#W').width(); },
@@ -52,14 +72,20 @@
 		function globalq(q){ return ([q[0]-E.offsetX(), E.w()-q[1]+E.offsetY()]); }
 
 
+		var dt = 0.1;
+		var g = [0, -9.8, 0];
 
-		var dt = 0.05;
-		var g = [0, -98, 0];
+
+		//collision groups
+		var collision_groups = new disjoint;
+		function connect(A, B){ collision_groups.unite(A.i, B.i); }
 
 
 
 		var box = function(i, m, w, h, q, v){
 			this.i = i; //index
+
+			collision_groups.parentOf[i] = i; //collision group
 
 			this.invm = 1/m;
 			this.invI = 12/(m*(h*h+w*w));
@@ -201,6 +227,8 @@
 		function rev_constraint(i, A, B, P){
 			constraint.call(this, i, [A, B]);
 
+			connect(this.S[0], this.S[1]); //rev constraint connects bodies.
+
 			this.rA = numeric['-'](P, [this.S[0].q[0], this.S[0].q[1]]);
 			this.rA = rot(-this.S[0].q[2], this.rA);
 
@@ -261,8 +289,6 @@
 
 			return D - this.d;
 		}
-
-
 
 
 		//constraint: anchor constraint
@@ -493,14 +519,19 @@
 			for(var j = i+1; j < B.length; ++j){
 			if(B[i] && B[j]){
 
-					var res = box_to_box(B[i], B[j]);
+					//only check for collisions if not in same group
+					if(collision_groups.find(B[i].i) != collision_groups.find(B[j].i)){
 
-					if(res === false){ /* no collision */ }
-					else {
-						//console.log('collision between: ' + i + ' ' + j);
-						res.forEach(function(r){
-						K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel; 
-						});
+						var res = box_to_box(B[i], B[j]);
+
+						if(res === false){ /* no collision */ }
+						else {
+							//console.log('collision between: ' + i + ' ' + j);
+							res.forEach(function(r){
+							K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel; 
+							});
+						}
+
 					}
 					
 
@@ -520,26 +551,22 @@
 			$(document).click(function(e){
 			console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
 
+			B[blabel] = new box(blabel, 1e+10, 180, 40, [300, 100, 0], [0, 0, 0]); ++blabel;
+			C[clabel] = new anchor_constraint(clabel, B[0]); ++clabel;
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 550, 0], [0, 0, 0]); ++blabel;
-
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
-
-			//C[clabel] = new dist_constraint(clabel, B[0], B[1], [280, 540], [280, 520]); ++clabel
-
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 300, 0], [90, -60, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [440, 250, 0], [0, 90, 0]); ++blabel;
-
-			B[blabel] = new box(blabel, 1, 50, 40, [260, 280, 0], [0, 0, 0]); ++blabel;
-
-
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 160, 0], [0, 10, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 220, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 280, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 340, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 500, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [330, 430, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [360, 460, 0], [0, 0, 0]); ++blabel;
+			//B[blabel] = new box(blabel, 1, 40, 40, [300, 280, 0], [0, 0, 0]); ++blabel;
+			//B[blabel] = new box(blabel, 1, 40, 40, [320, 300, 0], [0, 0, 0]); ++blabel;
+			C[clabel] = new rev_constraint(clabel, B[5], B[6], [315, 415]); ++clabel;
+			C[clabel] = new rev_constraint(clabel, B[6], B[7], [345, 445]); ++clabel;
 
-			B[blabel] = new box(blabel, 1e+12, 80, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
-
-			window.setInterval(timestep, 30);
+			//window.setInterval(timestep, 30);
 
 		});
 
@@ -548,7 +575,6 @@
 			B.forEach(function(b){
 				//verlet step
 				var a = g;
-				if(b.i == 8){ a = 0; }
 				qnext = numeric['+'](numeric['-'](numeric['*'](2, b.q), b.qprev), numeric['*'](dt*dt, a));
 				b.qprev = b.q; b.q = qnext;
 			});
@@ -556,7 +582,7 @@
 
 		function constrain(){
 
-			for(var i = 0; i < 12; ++i){
+			for(var i = 0; i < 8; ++i){
 
 			C.forEach(function(c){ c.solve(); });
 
@@ -573,7 +599,7 @@
 
 
 			collide();
-			for(var i = 0; i < 4; ++i){
+			for(var i = 0; i < 8; ++i){
 				K.forEach(function(k){ k.solve(); });
 			}
 
