@@ -51,7 +51,7 @@
 
 
 
-		var dt = 0.05;
+		var dt = 0.1;
 		var g = [0, -98, 0];
 
 
@@ -279,15 +279,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 		//constraint: collision constraint
 		function k_constraint(i, A, B, data){
 			constraint.call(this, i, [A, B]);
@@ -296,26 +287,11 @@
 
 			if(data['inc'] == 0){
 				this.rA = this.data['Rinc'];
-				this.rB = this.data['refN'];
+				this.rB = this.data['Rref'];
 			} else {
-				this.rA = this.data['refN'];
+				this.rA = this.data['Rref'];
 				this.rB = this.data['Rinc'];
 			}
-
-			
-			if((this.S[0].i == 3)||(this.S[1].i == 3)){
-
-				mark(numeric['+'](
-					[this.S[0].q[0], this.S[0].q[1]],
-					rot(this.S[0].q[2], this.rA)
-				));
-				mark(numeric['+'](
-					[this.S[1].q[0], this.S[1].q[1]],
-					rot(this.S[1].q[2], this.rB)
-				));
-
-			}
-			
 
 		}
 		k_constraint.prototype = Object.create(constraint.prototype);
@@ -342,109 +318,6 @@
 
 			return D;
 		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		/*
-		function k_constraint(i, A, B, contact){
-			this.i = i;	//index
-			this.S = [A, B]; //member bodies
-			this.contact = contact;
-
-			this.rA = null; this.rB = null;
-			this.d = [this.S[1].q[0]-this.S[0].q[0], this.S[1].q[1]-this.S[0].q[1]];
-
-			if(this.contact['inc'] == 0){
-				this.rA = rot(this.S[0].q[2], this.contact['Rinc']);
-				this.rB = numeric['-'](this.rA, this.d);
-
-				//mark([this.S[0].q[0]+rA[0], this.S[0].q[1]+rA[1]]);
-				//mark([this.S[1].q[0]+rB[0], this.S[1].q[1]+rB[1]]);
-
-			} else {
-				this.rB = rot(this.S[1].q[2], this.contact['Rinc']);
-				this.rA = numeric['+'](this.d, this.rB);
-
-				//mark([this.S[0].q[0]+rA[0], this.S[0].q[1]+rA[1]]);
-				//mark([this.S[1].q[0]+rB[0], this.S[1].q[1]+rB[1]]);
-			}
-
-		}
-
-
-		k_constraint.prototype.solve = function(){
-
-			var vA = [
-			(this.S[0].q[0]-this.S[0].qprev[0])/dt,
-			(this.S[0].q[1]-this.S[0].qprev[1])/dt
-			];
-			var wA = (this.S[0].q[2]-this.S[0].qprev[2])/dt
-
-			var vB = [
-			(this.S[1].q[0]-this.S[1].qprev[0])/dt,
-			(this.S[1].q[1]-this.S[1].qprev[1])/dt
-			];
-
-			var wB = (this.S[1].q[2]-this.S[1].qprev[2])/dt
-
-			var vAB = numeric['-'](
-			numeric['+'](vB, [wB*vB[1], -wB*vB[0]]),
-			numeric['+'](vA, [wA*vA[1], -wA*vA[0]])
-			)
-
-			var xA = X(this.rA, this.contact['n']);
-			var xB = X(this.rB, this.contact['n']);
-
-			var K = 
-			(
-			this.S[0].invm + this.S[1].invm +
-			xA*xA*this.S[0].invI +
-			xB*xB*this.S[1].invI
-			);
-
-
-			//impulses
-			var j = -(numeric['dot'](vAB, this.contact['n'])+0.1)/K;
-
-			this.dvA = [
-				j*this.S[0].invm*dt,
-				j*this.S[0].invm*dt,
-				X(this.rA, this.contact['n'])*j*this.S[0].invI*dt
-			]
-			console.log(this.dvA);
-
-			this.dvB = [
-				-j*this.S[1].invm*dt,
-				-j*this.S[1].invm*dt,
-				X(this.rB, this.contact['n'])*j*this.S[1].invI*dt
-			]
-			console.log(this.dvB);
-
-			//apply impulses
-			this.S[0].qprev = numeric['-'](this.S[0].q, this.dvA);
-			this.S[1].qprev = numeric['-'](this.S[1].q, this.dvB);
-		}
-		*/
-
-
 
 
 
@@ -515,7 +388,7 @@
 
 			var ref = 0; var inc = 0; var prodref = 0;
 
-			var refN;
+			var N = [];
 
 			for(var k = 0; k < 2; ++k){
 
@@ -537,106 +410,140 @@
 				var tmpi = 0; var tmpmax = 0; var s = (k ? -1 : 1);
 				for(var i = 0; i < 4; ++i){
 					var prod = s*numeric['dot'](enormals[k][i], manifold['n']);
-					if(prod > tmpmax){ tmpmax = prod; tmpi = i; }
+					if(prod > tmpmax){
+						tmpmax = prod;
+						tmpi = i;
+					}
 				}
 
 				edge[k] = [
 				numeric['+'](S[k].q, vertices[k][tmpi]),
 				numeric['+'](S[k].q, vertices[k][tmpi+1])
 				];
-
-				//identify reference edge as most perpendicular edge
-				if(tmpmax > prodref){
-					prodref = tmpmax; ref = k;
-
-					refN = numeric['*'](
+				N[k] = numeric['*'](
 							1/2,
 							numeric['+'](vertices[k][tmpi], vertices[k][tmpi+1])
 							);
 
+				//identify reference edge as most perpendicular edge
+				if(tmpmax > prodref){
+					prodref = tmpmax; ref = k;
 				}
 			}
 			inc = (ref ? 0 : 1);
 
+			/*
+			console.log('N0  ' + N[0]);
+			console.log('N1  ' + N[1]);
+			*/
 			console.log('ref: ' + ref + ' inc: ' + inc);
+			
 
-			//clipping
-			var flag0 = X(manifold['n'], numeric['-'](edge[inc][0], edge[ref][0]))*
-						X(manifold['n'], numeric['-'](edge[inc][1], edge[ref][0]));
+			var clipped = [];
+			clipped[inc] = edge[inc];
+			clipped[ref] = edge[ref];
 
-			var flag1 = X(manifold['n'], numeric['-'](edge[inc][0], edge[ref][1]))*
-						X(manifold['n'], numeric['-'](edge[inc][1], edge[ref][1]));
+			//clipping operations: inc in ref
 
-			if(flag0 < 0){
-				//incident edge: opposite sides of 0 limit
+			
+			var prt = [inc, ref];
+			var ord = [0, 1];
 
-				var a = X(numeric['-'](edge[ref][0], edge[inc][1]), manifold['n'])/
-						X(numeric['-'](edge[inc][0], edge[inc][1]), manifold['n']);
+			for(var u = 0; u < 2; ++u){
+			for(var v = 0; v < 2; ++v){
 
-				edge[inc][1] = [
-								edge[inc][1][0]*(1-a)+edge[inc][0][0]*a,
-								edge[inc][1][1]*(1-a)+edge[inc][0][1]*a
-								];
+			if(numeric['dot'](numeric['-'](edge[prt[0]][ord[0]], edge[prt[1]][ord[1]]),
+							  numeric['-'](edge[prt[1]][ord[0]], edge[prt[1]][ord[1]])) < 0){
+				clipped[prt[0]][ord[0]] =
+				intersect(edge[prt[0]], edge[prt[1]][ord[1]], N[prt[1]]);
+
+				if(numeric['dot'](
+					numeric['-'](clipped[prt[0]][ord[0]], edge[prt[1]][ord[0]]),
+					N[prt[1]]) > 0){
+					clipped[prt[0]][ord[0]] =
+					intersect(edge[prt[0]], edge[prt[1]][ord[0]], numeric['-'](edge[prt[1]][ord[1]], edge[prt[1]][ord[0]]));
+				}
+
 			}
 
-			if(flag1 < 0){
-				//incident edge: opposite sides of 1 limit
-	
-				var a = X(numeric['-'](edge[ref][1], edge[inc][1]), manifold['n'])/
-						X(numeric['-'](edge[inc][0], edge[inc][1]), manifold['n']);
+			ord = [ord[1], ord[0]];	}
+			prt = [prt[1], prt[0]];	}
 
-				edge[inc][0] = [
-								edge[inc][1][0]*(1-a)+edge[inc][0][0]*a,
-								edge[inc][1][1]*(1-a)+edge[inc][0][1]*a
-								];
+			/*
+			if(numeric['dot'](numeric['-'](edge[inc][0], edge[ref][1]),
+							  numeric['-'](edge[ref][0], edge[ref][1])) < 0){
+				console.log('clip inc 0');
+				
+				clipped[inc][0] = intersect(edge[inc], edge[ref][1], N[ref]);
+				if(numeric['dot'](numeric['-'](clipped[inc][0], edge[ref][0]), N[ref]) > 0){
+					clipped[inc][0] =
+					intersect(edge[inc], edge[ref][0], numeric['-'](edge[ref][1], edge[ref][0]));
+				}
 			}
 
-			//select only penetrating points
-			var data = [];
-			var cont = 0;
-			if(X(
-			numeric['-'](edge[ref][1], edge[ref][0]),
-			numeric['-'](edge[inc][0], edge[ref][0])) > 0){
+			if(numeric['dot'](numeric['-'](edge[inc][1], edge[ref][0]),
+							  numeric['-'](edge[ref][1], edge[ref][0])) < 0){
+				console.log('clip inc 1');
 
-				data[cont] = [];
-
-				data[cont]['n'] = manifold['n'];
-				data[cont]['P'] = edge[inc][0];
-				data[cont]['inc'] = inc;
-				data[cont]['Rinc'] =
-				rot(-S[inc].q[2], numeric['-'](edge[inc][0], S[inc].q));
-
-				data[cont]['refN'] = rot(-S[ref].q[2], refN);
-
-				//mark(edge[inc][0]);
-
-				++cont;
-			}
-
-			if(X(
-			numeric['-'](edge[ref][1], edge[ref][0]),
-			numeric['-'](edge[inc][1], edge[ref][0])) > 0){
-				data[cont] = [];
-
-				data[cont]['n'] = manifold['n'];
-				data[cont]['P'] = edge[inc][1];
-				data[cont]['inc'] = inc;
-				data[cont]['Rinc'] =
-				rot(-S[inc].q[2], numeric['-'](edge[inc][1], S[inc].q));
-
-				data[cont]['refN'] = rot(-S[ref].q[2], refN);
-
-				//mark(edge[inc][1]);
-
-				++cont;
+				clipped[inc][1] = intersect(edge[inc], edge[ref][0], N[ref]);
+				if(numeric['dot'](numeric['-'](clipped[inc][1], edge[ref][1]), N[ref]) > 0){
+					clipped[inc][1] =
+					intersect(edge[inc], edge[ref][1], numeric['-'](edge[ref][0], edge[ref][1]));
+				}
 			}
 
 
-			return data;
+			//clipping operations: ref on inc
+			if(numeric['dot'](numeric['-'](edge[ref][0], edge[inc][1]),
+							  numeric['-'](edge[inc][0], edge[inc][1])) < 0){
+				console.log('clip ref 0');
+
+				clipped[ref][0] = intersect(edge[ref], edge[inc][1], N[inc]);
+			}
+			if(numeric['dot'](numeric['-'](edge[ref][1], edge[inc][0]),
+							  numeric['-'](edge[inc][1], edge[inc][0])) < 0){
+				console.log('clip ref 1');
+
+				clipped[ref][1] = intersect(edge[ref], edge[inc][0], N[inc]);
+			}
+			*/
+
+			/*
+			mark(clipped[inc][0]);
+			mark(clipped[inc][1]);
+
+			mark(clipped[ref][0]);
+			mark(clipped[ref][1]);
+			*/
+			var res = [];
+
+			for(var o = 0; o < 2; ++o){
+				res[ord[0]] = {
+					'inc': inc,
+					'n': manifold['n'],
+					'Rinc': rot(-S[inc].q[2],
+							numeric['-'](clipped[inc][ord[0]],
+										[S[inc].q[0], S[inc].q[1]])),
+					'Rref': rot(-S[ref].q[2],
+							numeric['-'](clipped[ref][ord[1]],
+										[S[ref].q[0], S[ref].q[1]]))
+				};
+				ord = [ord[1], ord[0]];
+			}
+
+			console.log(res);
+
+			return res;
 		}
 
-
-
+		
+		function intersect(seg, p, n){
+				var a =	X(numeric['-'](p, seg[1]), n)/X(numeric['-'](seg[0], seg[1]), n);
+				return numeric['+'](
+									numeric['*'](1-a,seg[1]),
+									numeric['*'](a, seg[0])
+									);
+		}
 
 		function collide(){
 
@@ -674,20 +581,21 @@
 			console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
 
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 560, 0], [30, -80, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 550, 0], [30, -100, 0]); ++blabel;
 
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 2], [0, 0, 0]); ++blabel;
 
 			//C[clabel] = new dist_constraint(clabel, B[0], B[1], [280, 540], [280, 520]); ++clabel
 
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 200, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [400, 300, 0], [90, -60, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [440, 250, 0], [0, 90, 2]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 50, 40, [360, 280, 0.001], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 50, 40, [260, 280, 0.001], [0, 0, 0]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 40, 40, [700, 300, 0], [0, 0, 2]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [600, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [700, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [700, 500, 0], [0, 0, 0]); ++blabel;
+
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 400, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [400, 400, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [400, 500, 0], [0, 0, 0]); ++blabel;
 
 			B[blabel] = new box(blabel, 1e+12, 80, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
 
