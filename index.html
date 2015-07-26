@@ -432,19 +432,15 @@
 			}
 			inc = (ref ? 0 : 1);
 
-			/*
-			console.log('N0  ' + N[0]);
-			console.log('N1  ' + N[1]);
-			*/
-			console.log('ref: ' + ref + ' inc: ' + inc);
+			//console.log('ref: ' + ref + ' inc: ' + inc);
 			
 
 			var clipped = [];
 			clipped[inc] = edge[inc];
 			clipped[ref] = edge[ref];
 
-			//clipping operations: inc in ref
-
+			//clipping operations:
+			//loop through both ends, both sides.
 			
 			var prt = [inc, ref];
 			var ord = [0, 1];
@@ -461,7 +457,8 @@
 					numeric['-'](clipped[prt[0]][ord[0]], edge[prt[1]][ord[0]]),
 					N[prt[1]]) > 0){
 					clipped[prt[0]][ord[0]] =
-					intersect(edge[prt[0]], edge[prt[1]][ord[0]], numeric['-'](edge[prt[1]][ord[1]], edge[prt[1]][ord[0]]));
+					intersect(edge[prt[0]], edge[prt[1]][ord[0]],
+							  numeric['-'](edge[prt[1]][ord[1]], edge[prt[1]][ord[0]]));
 				}
 
 			}
@@ -469,52 +466,7 @@
 			ord = [ord[1], ord[0]];	}
 			prt = [prt[1], prt[0]];	}
 
-			/*
-			if(numeric['dot'](numeric['-'](edge[inc][0], edge[ref][1]),
-							  numeric['-'](edge[ref][0], edge[ref][1])) < 0){
-				console.log('clip inc 0');
-				
-				clipped[inc][0] = intersect(edge[inc], edge[ref][1], N[ref]);
-				if(numeric['dot'](numeric['-'](clipped[inc][0], edge[ref][0]), N[ref]) > 0){
-					clipped[inc][0] =
-					intersect(edge[inc], edge[ref][0], numeric['-'](edge[ref][1], edge[ref][0]));
-				}
-			}
-
-			if(numeric['dot'](numeric['-'](edge[inc][1], edge[ref][0]),
-							  numeric['-'](edge[ref][1], edge[ref][0])) < 0){
-				console.log('clip inc 1');
-
-				clipped[inc][1] = intersect(edge[inc], edge[ref][0], N[ref]);
-				if(numeric['dot'](numeric['-'](clipped[inc][1], edge[ref][1]), N[ref]) > 0){
-					clipped[inc][1] =
-					intersect(edge[inc], edge[ref][1], numeric['-'](edge[ref][0], edge[ref][1]));
-				}
-			}
-
-
-			//clipping operations: ref on inc
-			if(numeric['dot'](numeric['-'](edge[ref][0], edge[inc][1]),
-							  numeric['-'](edge[inc][0], edge[inc][1])) < 0){
-				console.log('clip ref 0');
-
-				clipped[ref][0] = intersect(edge[ref], edge[inc][1], N[inc]);
-			}
-			if(numeric['dot'](numeric['-'](edge[ref][1], edge[inc][0]),
-							  numeric['-'](edge[inc][1], edge[inc][0])) < 0){
-				console.log('clip ref 1');
-
-				clipped[ref][1] = intersect(edge[ref], edge[inc][0], N[inc]);
-			}
-			*/
-
-			/*
-			mark(clipped[inc][0]);
-			mark(clipped[inc][1]);
-
-			mark(clipped[ref][0]);
-			mark(clipped[ref][1]);
-			*/
+			//assemble return values
 			var res = [];
 
 			for(var o = 0; o < 2; ++o){
@@ -531,13 +483,12 @@
 				ord = [ord[1], ord[0]];
 			}
 
-			console.log(res);
-
 			return res;
 		}
 
 		
 		function intersect(seg, p, n){
+				//where segment(seg) intersects line (p, n)
 				var a =	X(numeric['-'](p, seg[1]), n)/X(numeric['-'](seg[0], seg[1]), n);
 				return numeric['+'](
 									numeric['*'](1-a,seg[1]),
@@ -559,7 +510,7 @@
 					else {
 						//console.log('collision between: ' + i + ' ' + j);
 						res.forEach(function(r){
-							K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel; 
+						K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel; 
 						});
 					}
 					
