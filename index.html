@@ -32,6 +32,8 @@
 			border: 1px solid #999;
 
 			position: absolute;
+
+			box-sizing: border-box;
 		}
 
 	</style>
@@ -51,7 +53,7 @@
 
 
 
-		var dt = 0.1;
+		var dt = 0.05;
 		var g = [0, -98, 0];
 
 
@@ -298,6 +300,12 @@
 		k_constraint.prototype.constructor = k_constraint;
 
 		k_constraint.prototype.D = function(){
+			
+		}
+
+		k_constraint.prototype.condition = function(){ return this.C() > 0; }
+
+		k_constraint.prototype.C = function(){
 			var rA = rot(this.S[0].q[2], this.rA);
 			var rB = rot(this.S[1].q[2], this.rB);
 
@@ -306,17 +314,6 @@
 				[this.S[0].q[0]+rA[0], this.S[0].q[1]+rA[1]],
 				[this.S[1].q[0]+rB[0], this.S[1].q[1]+rB[1]]
 			), this.data['n']);
-		}
-
-		k_constraint.prototype.condition = function(){ return this.D() > 0; }
-
-		k_constraint.prototype.C = function(){
-
-			var D = this.D();
-
-			if((this.S[0].i == 3)||(this.S[1].i == 3)){ console.log(D); }
-
-			return D;
 		}
 
 
@@ -371,8 +368,9 @@
 				}
 			}
 
-			//contact generations
+			//call contact generation
 			var res = generate_contacts(A, B, tmp);
+
 			return res;
 		}
 		
@@ -486,14 +484,13 @@
 			return res;
 		}
 
-		
 		function intersect(seg, p, n){
 				//where segment(seg) intersects line (p, n)
 				var a =	X(numeric['-'](p, seg[1]), n)/X(numeric['-'](seg[0], seg[1]), n);
 				return numeric['+'](
-									numeric['*'](1-a,seg[1]),
-									numeric['*'](a, seg[0])
-									);
+						numeric['*'](1-a,seg[1]),
+						numeric['*'](a, seg[0])
+						);
 		}
 
 		function collide(){
@@ -532,16 +529,16 @@
 			console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
 
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 550, 0], [30, -100, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 550, 0], [0, 0, 0]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 2], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
 
 			//C[clabel] = new dist_constraint(clabel, B[0], B[1], [280, 540], [280, 520]); ++clabel
 
 			B[blabel] = new box(blabel, 1, 40, 40, [400, 300, 0], [90, -60, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [440, 250, 0], [0, 90, 2]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [440, 250, 0], [0, 90, 0]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 50, 40, [260, 280, 0.001], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 50, 40, [260, 280, 0], [0, 0, 0]); ++blabel;
 
 
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 400, 0], [0, 0, 0]); ++blabel;
@@ -584,7 +581,7 @@
 
 
 			collide();
-			for(var i = 0; i < 12; ++i){
+			for(var i = 0; i < 4; ++i){
 				K.forEach(function(k){ k.solve(); });
 			}
 
