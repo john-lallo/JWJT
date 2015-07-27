@@ -89,7 +89,13 @@
 				'-webkit-transform' : 'translate('
 				+ this.q[0] + 'px, '
 				+ (-this.q[1]) + 'px) rotate('
+				+ (-this.q[2]) + 'rad)',
+
+				'-moz-transform' : 'translate('
+				+ this.q[0] + 'px, '
+				+ (-this.q[1]) + 'px) rotate('
 				+ (-this.q[2]) + 'rad)'
+
 			});
 		}
 
@@ -110,7 +116,12 @@
 			elem.css({
 				'-webkit-transform' : 'translate('
 				+ q[0] + 'px, '
+				+ (-q[1]) + 'px)',
+
+				'-moz-transform' : 'translate('
+				+ q[0] + 'px, '
 				+ (-q[1]) + 'px)'
+
 			});
 			marklabel++;
 		}
@@ -310,6 +321,7 @@
 
 
 
+
 		//collision detection
 		function box_to_box(A, B){
 			//Separate Axis Thm.
@@ -488,7 +500,6 @@
 		function collide(){
 
 			K = [];	klabel = 0;
-
 			for(var i = 0; i < B.length; ++i){
 			for(var j = i+1; j < B.length; ++j){
 			if(B[i] && B[j]){
@@ -499,7 +510,9 @@
 					else {
 						//console.log('collision between: ' + i + ' ' + j);
 						res.forEach(function(r){
-						K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel; 
+
+						K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel;
+
 						});
 					}
 					
@@ -512,34 +525,36 @@
 
 		var B = []; var blabel = 0; //all bodies
 		var C = []; var clabel = 0; //static constraints
+
 		var K = []; var klabel = 0; //collision constraints
+
+		var cursor_q = [0, 0];
+
+		function update_q(e){
+			cursor_q = globalq([e.pageX, e.pageY]);
+			console.log(cursor_q);
+		}
 
 
 		$(document).ready(function(){
 
-			$(document).click(function(e){
-			console.log(globalq([e.pageX, e.pageY])); }); //positioncheck
+			$(document).on('mousemove', update_q); //positioncheck
 
+			B[blabel] = new box(blabel, 1e+12, 180, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
+			C[clabel] = new anchor_constraint(clabel, B[0]); ++clabel
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 550, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [240, 250, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 250, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [360, 250, 0], [0, 0, 0]); ++blabel;
 
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 500, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [270, 292, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [330, 292, 0], [0, 0, 0]); ++blabel;
 
-			//C[clabel] = new dist_constraint(clabel, B[0], B[1], [280, 540], [280, 520]); ++clabel
+			B[blabel] = new box(blabel, 1, 40, 40, [300, 334, 0], [0, 0, 0]); ++blabel;
+			
+			//B[blabel] = new box(blabel, 1, 40, 40, [100, 400, 0], [150, 0, -6]); ++blabel;	
 
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 300, 0], [90, -60, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [440, 250, 0], [0, 90, 0]); ++blabel;
-
-			B[blabel] = new box(blabel, 1, 50, 40, [260, 280, 0], [0, 0, 0]); ++blabel;
-
-
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 400, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [400, 500, 0], [0, 0, 0]); ++blabel;
-
-			B[blabel] = new box(blabel, 1e+12, 80, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
-
-			window.setInterval(timestep, 30);
+			//window.setInterval(timestep, 30);
 
 		});
 
@@ -548,7 +563,7 @@
 			B.forEach(function(b){
 				//verlet step
 				var a = g;
-				if(b.i == 8){ a = 0; }
+
 				qnext = numeric['+'](numeric['-'](numeric['*'](2, b.q), b.qprev), numeric['*'](dt*dt, a));
 				b.qprev = b.q; b.q = qnext;
 			});
