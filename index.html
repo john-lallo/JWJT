@@ -12,6 +12,8 @@
 
 			font-family: monospace;
 			font-size: 12px;
+
+			cursor: default;
 		}
 
 		#W {
@@ -70,7 +72,7 @@
 			this.q = q; //position
 			this.qprev = numeric['-'](q, numeric['*'](v, dt)); //prev position
 
-			this.render(); this.sync();
+			this.render(); this.attach_handlers(); this.sync();
 		}
 
 		box.prototype.render = function(){
@@ -82,6 +84,14 @@
 			'"></div>';
 
 			$('#W').append(S); this.elem = $('#B' + this.i);
+		}
+
+		box.prototype.attach_handlers = function(){
+			//dragging
+			var t = this;
+			this.elem.on('mousedown', function(){
+				startdrag(t.i);
+			});
 		}
 
 		box.prototype.sync = function(){
@@ -528,17 +538,74 @@
 
 		var K = []; var klabel = 0; //collision constraints
 
+
+
+
+		/* dragging functionality */
 		var cursor_q = [0, 0];
+		var dragtarg = null;
+
+		var drag_r = [0, 0];
 
 		function update_q(e){
 			cursor_q = globalq([e.pageX, e.pageY]);
-			console.log(cursor_q);
 		}
+
+		function startdrag(i){
+			dragtarg = i;
+
+			drag_r = rot(-B[i].q[2], [
+				cursor_q[0]-B[i].q[0],
+				cursor_q[1]-B[i].q[1]
+			]);
+
+			var r = rot(B[dragtarg].q[2], drag_r);
+			var P = numeric['+']([B[dragtarg].q[0], B[dragtarg].q[1]], r);
+			//mark(P);
+		}
+
+		function stopdrag(i){
+			dragtarg = null;
+		}
+
+		function dragf(){
+
+			var r = rot(B[dragtarg].q[2], drag_r);
+			var P = numeric['+']([B[dragtarg].q[0], B[dragtarg].q[1]], r);
+
+			
+			var coef_F = 80;
+			var coef_b = -4;
+
+			var d = numeric['-'](cursor_q, P);
+
+			var dragforce = numeric['*'](coef_F, [
+				d[0]*B[dragtarg].invm,
+				d[1]*B[dragtarg].invm,
+				X(r, d)*B[dragtarg].invI
+			]);
+
+			var v = [
+				(B[dragtarg].q[0]-B[dragtarg].qprev[0])/dt,
+				(B[dragtarg].q[1]-B[dragtarg].qprev[1])/dt,
+				0//(B[dragtarg].q[2]-B[dragtarg].qprev[2])/dt
+			];
+
+			var dampforce = numeric['*'](coef_b, v);
+			
+
+			console.log(d);
+			return numeric['+'](dragforce, dampforce);
+		}
+
 
 
 		$(document).ready(function(){
 
 			$(document).on('mousemove', update_q); //positioncheck
+
+			$('#W').on('mouseup', stopdrag);
+			$('#W').on('mouseleave', stopdrag);
 
 			B[blabel] = new box(blabel, 1e+12, 180, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
 			C[clabel] = new anchor_constraint(clabel, B[0]); ++clabel
@@ -552,9 +619,11 @@
 
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 334, 0], [0, 0, 0]); ++blabel;
 			
+			
+
 			//B[blabel] = new box(blabel, 1, 40, 40, [100, 400, 0], [150, 0, -6]); ++blabel;	
 
-			//window.setInterval(timestep, 30);
+			window.setInterval(timestep, 30);
 
 		});
 
@@ -563,6 +632,9 @@
 			B.forEach(function(b){
 				//verlet step
 				var a = g;
+
+				//also handle dragging
+				if(b.i === dragtarg){ a = numeric['+'](g, dragf()); }
 
 				qnext = numeric['+'](numeric['-'](numeric['*'](2, b.q), b.qprev), numeric['*'](dt*dt, a));
 				b.qprev = b.q; b.q = qnext;
