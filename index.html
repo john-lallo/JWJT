@@ -55,7 +55,7 @@
 
 
 
-		var dt = 0.05;
+		var dt = 0.01;
 		var g = [0, -98, 0];
 
 
@@ -332,40 +332,6 @@
 		}
 
 
-
-
-		//constraint: collision constraint
-		function f_constraint(i, A, t, r){
-			constraint.call(this, i, [A]);
-
-			this.t = t;		//unit tangent vector
-			this.rA = r;
-
-			this.P0 = numeric['+'](
-			[q0[this.S[0].i][0], q0[this.S[0].i][1]],
-			rot(this.S[0].q[2], this.rA));
-
-			mark(this.P0);
-
-			this.hardness = 1;
-
-		}
-		f_constraint.prototype = Object.create(constraint.prototype);
-		f_constraint.prototype.constructor = f_constraint;
-
-		f_constraint.prototype.condition = function(){ return true; }//this.C() > 1; }
-
-		f_constraint.prototype.C = function(){
-
-			var P = numeric['+'](
-					[this.S[0].q[0], this.S[0].q[1]],
-					rot(this.S[0].q[2], this.rA));
-
-
-			return numeric['dot'](
-					numeric['-'](P, this.P0),
-					this.t);
-		}
 
 
 
@@ -648,9 +614,9 @@
 			B[blabel] = new box(blabel, 1e+12, 180, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
 			C[clabel] = new anchor_constraint(clabel, B[0]); ++clabel
 
-			B[blabel] = new box(blabel, 1, 40, 40, [240, 250, 0], [50, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 40, 40, [240, 250, 0], [0, 0, 0]); ++blabel;
 
-			/*
+			
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 250, 0], [0, 0, 0]); ++blabel;
 			B[blabel] = new box(blabel, 1, 40, 40, [360, 250, 0], [0, 0, 0]); ++blabel;
 
@@ -658,12 +624,12 @@
 			B[blabel] = new box(blabel, 1, 40, 40, [330, 292, 0], [0, 0, 0]); ++blabel;
 
 			B[blabel] = new box(blabel, 1, 40, 40, [300, 334, 0], [0, 0, 0]); ++blabel;
-			*/
+			
 			
 
 			//B[blabel] = new box(blabel, 1, 40, 40, [100, 400, 0], [150, 0, -6]); ++blabel;	
 
-			window.setInterval(timestep, 30);
+			window.setInterval(timestep, 10);
 
 		});
 
@@ -678,6 +644,7 @@
 
 				qnext = numeric['+'](numeric['-'](numeric['*'](2, b.q), b.qprev), numeric['*'](dt*dt, a));
 				b.qprev = b.q; b.q = qnext;
+
 			});
 		}
 
