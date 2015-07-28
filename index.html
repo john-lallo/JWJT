@@ -547,7 +547,6 @@
 
 		function collide(){
 
-			F = []; flabel = 0;
 			K = [];	klabel = 0;
 
 			for(var i = 0; i < B.length; ++i){
@@ -564,33 +563,6 @@
 							K[klabel] = new k_constraint(klabel, B[i], B[j], r); ++klabel;
 						});
 
-
-						var Rinc = numeric['*'](1/2, numeric['+'](res[0]['Rinc'], res[1]['Rinc']));
-						var Rref = numeric['*'](1/2, numeric['+'](res[0]['Rref'], res[1]['Rref']));
-
-						if(res[0]['inc']){
-
-							F[flabel] =
-							new f_constraint(flabel, B[j], res[0]['t'], Rinc);
-							++flabel;
-
-							F[flabel] =
-							new f_constraint(flabel, B[i], res[0]['t'], Rref);
-							++flabel;
-
-						} else {
-
-							F[flabel] =
-							new f_constraint(flabel, B[i], res[0]['t'], Rinc);
-							++flabel;
-
-							F[flabel] =
-							new f_constraint(flabel, B[j], res[0]['t'], Rref);
-							++flabel;
-
-
-						}
-
 					}
 					
 
@@ -604,7 +576,6 @@
 		var C = []; var clabel = 0; //static constraints
 
 		var K = []; var klabel = 0; //collision constraints
-		var F = []; var flabel = 0; //friction constraints
 
 
 
@@ -692,7 +663,7 @@
 
 			//B[blabel] = new box(blabel, 1, 40, 40, [100, 400, 0], [150, 0, -6]); ++blabel;	
 
-			//window.setInterval(timestep, 30);
+			window.setInterval(timestep, 30);
 
 		});
 
@@ -738,9 +709,6 @@
 			//solving generated collision constraints
 			for(var i = 0; i < 4; ++i){
 				K.forEach(function(k){ k.solve(); });
-			}
-			for(var i = 0; i < 14; ++i){
-				F.forEach(function(f){ f.solve(); });
 			}
 			render();
 
