@@ -24,7 +24,7 @@ function collide(){
 	for(var i = 0; i < B.length; ++i){
 	for(var j = i+1; j < B.length; ++j){
 
-	if(B[i] && B[j]){
+	if(B[i] && B[j] && !(collision_groups.root(B[i].i) == collision_groups.root(B[j].i))){
 
 			var res = box_to_box(B[i], B[j]);
 

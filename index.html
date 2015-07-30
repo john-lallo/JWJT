@@ -45,6 +45,7 @@
 
 	<script language = "javascript" src = "math/numeric.js"></script>
 	<script language = "javascript" src = "math/misc_math.js"></script>
+	<script language = "javascript" src = "math/disjoint.js"></script>
 
 	<script language = "javascript" src = "constraints/constraint_general.js"></script>
 	<script language = "javascript" src = "constraints/constraint_rev.js"></script>
@@ -56,6 +57,7 @@
 	<script language = "javascript" src = "collision/detection_box2box.js"></script>
 	<script language = "javascript" src = "collision/contact_generation.js"></script>
 	<script language = "javascript" src = "collision/collision_constraint.js"></script>
+	<script language = "javascript" src = "collision/collision_groups.js"></script>
 
 	<script language = "javascript" src = "interactivity/dragging.js"></script>
 
@@ -90,7 +92,24 @@
 			
 			
 
-			//B[blabel] = new box(blabel, 1, 40, 40, [100, 400, 0], [150, 0, -6]); ++blabel;	
+			B[blabel] = new box(blabel, 1e+12, 10, 10, [400, 600, 0], [0, 0, 0]); ++blabel;
+			C[clabel] = new anchor_constraint(clabel, B[7]); ++clabel
+
+			B[blabel] = new box(blabel, 1, 10, 70, [400, 570, 0], [0, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 10, 70, [400, 510, 0], [60, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 10, 70, [400, 450, 0], [120, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 10, 70, [400, 390, 0], [280, 0, 0]); ++blabel;
+			B[blabel] = new box(blabel, 1, 10, 70, [400, 330, 0], [240, 0, 0]); ++blabel;
+
+			B[blabel] = new box(blabel, 4, 40, 80, [400, 270, 0], [240, 0, 0]); ++blabel;
+
+			C[clabel] = new rev_constraint(clabel, B[7], B[8], [400, 600]); ++clabel;
+			C[clabel] = new rev_constraint(clabel, B[8], B[9], [400, 540]); ++clabel;
+			C[clabel] = new rev_constraint(clabel, B[9], B[10], [400, 480]); ++clabel;
+			C[clabel] = new rev_constraint(clabel, B[10], B[11], [400, 420]); ++clabel;
+			C[clabel] = new rev_constraint(clabel, B[11], B[12], [400, 360]); ++clabel;
+
+			C[clabel] = new rev_constraint(clabel, B[12], B[13], [400, 300]); ++clabel;
 
 			window.setInterval(timestep, 100*dt);
 
