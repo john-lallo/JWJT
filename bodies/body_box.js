@@ -15,14 +15,6 @@ var box = function(i, m, w, h, q, v){
 	this.render(); this.attach_handlers(); this.sync();
 }
 
-box.prototype.vmeasure = function(){
-	var v = numeric['-'](this.q, this.qprev);
-	return numeric['dot'](v, v)/dt/dt;
-}
-
-box.prototype.sleep = function(){ this.elem.css({'border-color': '#555'});}
-box.prototype.wake = function(){ this.elem.css({'border-color': '#999'});}
-
 box.prototype.render = function(){
 
 	S = '<div id = "B' + this.i + '" class = "box" style = "' +

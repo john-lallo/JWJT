@@ -25,28 +25,6 @@ constraint.prototype.nablaC = function() {
 }
 constraint.prototype.solve = function(){
 
-
-
-	//sleeping checks if sleeping is enabled.
-	if(enable_sleeping){
-		var flag = true;
-		for(var i = 0; (i < this.S.length) && flag; ++i){
-			//console.log(this.S[i].vmeasure());
-			flag = flag && (this.S[i].vmeasure() < 1e-1)
-		}
-		if(flag&&this.lastC < 1e-12){
-			for(var i = 0; i < this.S.length; ++i){
-				this.S[i].q = this.S[i].qprev;
-				this.S[i].sleep();
-			}
-			return;
-		}
-		for(var i = 0; i < this.S.length; ++i){	this.S[i].wake(); }
-	}
-	
-
-
-
 	if(this.condition()){
 		var nablaC = this.nablaC();
 		//var nablaCT = numeric['transpose'](nablaC);
