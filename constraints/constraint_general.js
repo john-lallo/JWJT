@@ -5,7 +5,6 @@ var constraint = function(i, S){
 	this.S = S; //member bodies
 
 	this.hardness = 1;
-
 }
 constraint.prototype.condition = function(){ return true; }
 constraint.prototype.C = function() { return 0;	}
@@ -55,7 +54,5 @@ constraint.prototype.solve = function(){
 			this.S[i].q = numeric['+'](this.S[i].q, [dP[3*i][0], dP[3*i+1][0], dP[3*i+2][0]]);
 		}
 	}
-
-	this.lastC = this.C();
 
 }

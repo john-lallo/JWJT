@@ -51,6 +51,7 @@
 	<script language = "javascript" src = "constraints/constraint_rev.js"></script>
 	<script language = "javascript" src = "constraints/constraint_dist.js"></script>
 	<script language = "javascript" src = "constraints/constraint_anchor.js"></script>
+	<script language = "javascript" src = "constraints/constraint_weld.js"></script>
 
 	<script language = "javascript" src = "bodies/body_box.js"></script>
 
@@ -104,7 +105,8 @@
 			create_box(1, 10, 70, [400, 390, 0], [60, 0, 0]);
 			create_box(1, 10, 70, [400, 330, 0], [60, 0, 0]);
 
-			create_box(4, 40, 80, [400, 270, 0], [60, 0, 0]);
+			create_box(4, 40, 80, [400, 260, 0], [60, 0, 0]);
+			create_box(4, 40, 40, [420, 220, 0], [60, 0, 0]);
 
 			rev_joint(7, 8, [400, 600]);
 			rev_joint(8, 9, [400, 540]);
@@ -114,9 +116,11 @@
 
 			rev_joint(12, 13, [400, 300]);
 
+			weld_joint(13, 14);
+
 			delete_body(10);
 			create_box(1, 10, 70, [400, 450, 0], [60, 0, 0]);
-			rev_joint(9, 10, [400, 480]);
+			//rev_joint(9, 10, [400, 480]);
 			rev_joint(10, 11, [400, 420]);
 
 			window.setInterval(timestep, 100*dt);

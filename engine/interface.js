@@ -46,3 +46,24 @@ function rev_joint(i, j, P){
 		++clabel;
 	}
 }
+
+function weld_joint(i, j){
+	/*
+	if(cwaiting[0]){
+		var c = cwaiting.pop();
+		C[c] = new weld_constraint(c, B[i], B[j]);
+		B[i].relevant_constraints.push(c);
+		B[j].relevant_constraints.push(c);
+	} else {
+		C[clabel] = new weld_constraint(clabel, B[i], B[j]);
+		B[i].relevant_constraints.push(clabel);
+		B[j].relevant_constraints.push(clabel);
+		++clabel;
+	}
+	*/
+	rev_joint(i, j, [B[i].q[0], B[i].q[1]]);
+	rev_joint(i, j, [B[j].q[0], B[j].q[1]]);
+}
+
+
+
