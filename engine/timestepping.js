@@ -14,7 +14,7 @@ function integrate(){
 }
 
 //constraining
-function constrain(){ for(var i = 0; i < 12; ++i){ C.forEach(function(c){ c.solve(); }); }}
+function constrain(){for(var i = 0; i < 12; ++i){ C.forEach(function(c){ c.solve(); }); }}
 
 //collision steps
 function collide(){

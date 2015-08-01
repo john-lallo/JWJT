@@ -1,7 +1,9 @@
 
 //simulation parameters
-var dt = 0.005;
+var dt = 0.02;
 var g = [0, -98, 0];
+
+var enable_sleeping = true;
 
 //get environment information:
 var E = {
