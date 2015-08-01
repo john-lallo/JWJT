@@ -63,6 +63,7 @@
 
 	<script language = "javascript" src = "engine/timestepping.js"></script>
 	<script language = "javascript" src = "engine/param.js"></script>
+	<script language = "javascript" src = "engine/interface.js"></script>
 
 	<script language = "javascript" src = "tools/debug.js"></script>
 
@@ -76,41 +77,47 @@
 			$('#W').on('mouseup', stopdrag);
 			$('#W').on('mouseleave', stopdrag);
 
-			B[blabel] = new box(blabel, 1e+12, 180, 40, [300, 200, 0], [0, 0, 0]); ++blabel;
-			C[clabel] = new anchor_constraint(clabel, B[0]); ++clabel
-
-			B[blabel] = new box(blabel, 1, 40, 40, [240, 250, 0], [0, 0, 0]); ++blabel;
-
 			
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 250, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [360, 250, 0], [0, 0, 0]); ++blabel;
-
-			B[blabel] = new box(blabel, 1, 40, 40, [270, 292, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 40, 40, [330, 292, 0], [0, 0, 0]); ++blabel;
-
-			B[blabel] = new box(blabel, 1, 40, 40, [300, 334, 0], [0, 0, 0]); ++blabel;
+			create_box(1e+12, 180, 40, [300, 200, 0], [0, 0, 0]);
+			anchor(0);
 			
 			
-			/*
-			B[blabel] = new box(blabel, 1e+12, 10, 10, [400, 600, 0], [0, 0, 0]); ++blabel;
-			C[clabel] = new anchor_constraint(clabel, B[7]); ++clabel
+			create_box(1, 40, 40, [240, 250, 0], [0, 0, 0]);
 
-			B[blabel] = new box(blabel, 1, 10, 70, [400, 570, 0], [0, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [400, 510, 0], [60, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [400, 450, 0], [120, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [400, 390, 0], [280, 0, 0]); ++blabel;
-			B[blabel] = new box(blabel, 1, 10, 70, [400, 330, 0], [240, 0, 0]); ++blabel;
+			
+			create_box(1, 40, 40, [300, 250, 0], [0, 0, 0]);
+			create_box(1, 40, 40, [360, 250, 0], [0, 0, 0]);
 
-			B[blabel] = new box(blabel, 4, 40, 80, [400, 270, 0], [240, 0, 0]); ++blabel;
+			create_box(1, 40, 40, [270, 292, 0], [0, 0, 0]);
+			create_box(1, 40, 40, [330, 292, 0], [0, 0, 0]);
 
-			C[clabel] = new rev_constraint(clabel, B[7], B[8], [400, 600]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[8], B[9], [400, 540]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[9], B[10], [400, 480]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[10], B[11], [400, 420]); ++clabel;
-			C[clabel] = new rev_constraint(clabel, B[11], B[12], [400, 360]); ++clabel;
+			create_box(1, 40, 40, [300, 334, 0], [0, 0, 0]);
+			
+			
+			
+			create_box(1e+12, 10, 10, [400, 600, 0], [0, 0, 0]);
+			anchor(7);
 
-			C[clabel] = new rev_constraint(clabel, B[12], B[13], [400, 300]); ++clabel;
-			*/
+			create_box(1, 10, 70, [400, 570, 0], [0, 0, 0]);
+			create_box(1, 10, 70, [400, 510, 0], [60, 0, 0]);
+			create_box(1, 10, 70, [400, 450, 0], [60, 0, 0]);
+			create_box(1, 10, 70, [400, 390, 0], [60, 0, 0]);
+			create_box(1, 10, 70, [400, 330, 0], [60, 0, 0]);
+
+			create_box(4, 40, 80, [400, 270, 0], [60, 0, 0]);
+
+			rev_joint(7, 8, [400, 600]);
+			rev_joint(8, 9, [400, 540]);
+			rev_joint(9, 10, [400, 480]);
+			rev_joint(10, 11, [400, 420]);
+			rev_joint(11, 12, [400, 360]);
+
+			rev_joint(12, 13, [400, 300]);
+
+			delete_body(10);
+			create_box(1, 10, 70, [400, 450, 0], [60, 0, 0]);
+			rev_joint(9, 10, [400, 480]);
+			rev_joint(10, 11, [400, 420]);
 
 			window.setInterval(timestep, 100*dt);
 

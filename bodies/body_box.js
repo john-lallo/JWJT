@@ -12,6 +12,8 @@ var box = function(i, m, w, h, q, v){
 	this.q = q; //position
 	this.qprev = numeric['-'](q, numeric['*'](v, dt)); //prev position
 
+	this.relevant_constraints = [];
+
 	this.render(); this.attach_handlers(); this.sync();
 }
 

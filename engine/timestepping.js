@@ -1,6 +1,8 @@
 //integration
 function integrate(){
-	B.forEach(function(b){
+	B.forEach(function(b){if(b){
+	
+
 		//verlet step
 		var a = g;
 
@@ -9,12 +11,11 @@ function integrate(){
 
 		qnext = numeric['+'](numeric['-'](numeric['*'](2, b.q), b.qprev), numeric['*'](dt*dt, a));
 		b.qprev = b.q; b.q = qnext;
-
-	});
+	}});
 }
 
 //constraining
-function constrain(){for(var i = 0; i < 12; ++i){ C.forEach(function(c){ c.solve(); }); }}
+function constrain(){for(var i = 0; i < 12; ++i){ C.forEach(function(c){if(c){ c.solve(); }}); }}
 
 //collision steps
 function collide(){
@@ -43,7 +44,7 @@ function collide(){
 }
 
 //rendering
-function render(){ B.forEach(function(b){ b.sync(); }); }
+function render(){ B.forEach(function(b){if(b){ b.sync(); }}); }
 
 
 
@@ -53,7 +54,7 @@ var q0 = [];
 function timestep(){
 
 	//log previous positions for use later
-	B.forEach(function(b){ q0[b.i] = b.q; });
+	B.forEach(function(b){if(b){ q0[b.i] = b.q; }});
 
 	//timestepping & constraining step
 	integrate();
