@@ -61,9 +61,150 @@ function generate_contacts(A, B, manifold){
 	clipped[inc] = edge[inc];
 	clipped[ref] = edge[ref];
 
-	//clipping operations:
-	//loop through both ends, both sides.
 	
+	//.....................clipping: inc on ref
+
+	
+	//inside: left
+	if(X(
+	numeric['-'](clipped[ref][1], clipped[ref][0]),
+	numeric['-'](clipped[inc][0], clipped[ref][0])) < 0
+	){
+		clipped[inc][0] = intersect(
+			clipped[inc],
+			clipped[ref][0],
+			numeric['-'](clipped[ref][1], clipped[ref][0])
+			);
+	}
+
+	//inside: right
+	if(X(
+	numeric['-'](clipped[ref][1], clipped[ref][0]),
+	numeric['-'](clipped[inc][1], clipped[ref][0])) < 0
+	){
+		clipped[inc][1] = intersect(
+			clipped[inc],
+			clipped[ref][0],
+			numeric['-'](clipped[ref][1], clipped[ref][0])
+			);
+	}
+
+	//between: left
+	if(numeric['dot'](
+		numeric['-'](clipped[inc][0], clipped[ref][1]),
+		numeric['-'](clipped[ref][0], clipped[ref][1])) < 0
+	){
+		clipped[inc][0] = intersect(
+			clipped[inc],
+			clipped[ref][1],
+			N[ref]
+		);
+	}
+
+	//between: right
+	if(numeric['dot'](
+		numeric['-'](clipped[inc][1], clipped[ref][0]),
+		numeric['-'](clipped[ref][1], clipped[ref][0])) < 0
+	){
+		clipped[inc][1] = intersect(
+			clipped[inc],
+			clipped[ref][0],
+			N[ref]
+		);
+	}
+	
+
+	//.....................clipping: ref on inc
+
+
+	//inside: left
+	if(X(
+	numeric['-'](clipped[inc][1], clipped[inc][0]),
+	numeric['-'](clipped[ref][0], clipped[inc][0])) < 0
+	){
+		clipped[ref][0] = intersect(
+			clipped[ref],
+			clipped[inc][0],
+			numeric['-'](clipped[inc][1], clipped[inc][0])
+			);
+	}
+
+	//inside: right
+	if(X(
+	numeric['-'](clipped[inc][1], clipped[inc][0]),
+	numeric['-'](clipped[ref][1], clipped[inc][0])) < 0
+	){
+		clipped[ref][1] = intersect(
+			clipped[ref],
+			clipped[inc][0],
+			numeric['-'](clipped[inc][1], clipped[inc][0])
+			);
+	}
+
+	//between: left
+	if(numeric['dot'](
+		numeric['-'](clipped[ref][0], clipped[inc][1]),
+		numeric['-'](clipped[inc][0], clipped[inc][1])) < 0
+	){
+		clipped[ref][0] = intersect(
+			clipped[ref],
+			clipped[inc][1],
+			N[inc]
+		);
+	}
+
+	//between: right
+	if(numeric['dot'](
+		numeric['-'](clipped[ref][1], clipped[inc][0]),
+		numeric['-'](clipped[inc][1], clipped[inc][0])) < 0
+	){
+		clipped[ref][1] = intersect(
+			clipped[ref],
+			clipped[inc][0],
+			N[inc]
+		);
+	}
+
+	/*
+	mark(clipped[inc][0]);
+	mark(clipped[inc][1]);
+	mark(clipped[ref][0]);
+	mark(clipped[ref][1]);
+	*/
+
+
+	var res = [];
+
+	res[0] = {
+			'inc': inc,
+			'n': manifold['n'],
+			't': [-manifold['n'][1], manifold['n'][0]],
+			'Rinc': rot(-S[inc].q[2],
+					numeric['-'](clipped[inc][0],
+								[S[inc].q[0], S[inc].q[1]])),
+			'Rref': rot(-S[ref].q[2],
+					numeric['-'](clipped[ref][1],
+								[S[ref].q[0], S[ref].q[1]]))
+	}
+
+	res[1] = {
+			'inc': inc,
+			'n': manifold['n'],
+			't': [-manifold['n'][1], manifold['n'][0]],
+			'Rinc': rot(-S[inc].q[2],
+					numeric['-'](clipped[inc][1],
+								[S[inc].q[0], S[inc].q[1]])),
+			'Rref': rot(-S[ref].q[2],
+					numeric['-'](clipped[ref][0],
+								[S[ref].q[0], S[ref].q[1]]))
+	}
+
+
+
+
+	//BUG SOMEWHERE BELOW TIS LINE
+
+	/*
 	var prt = [inc, ref];
 	var ord = [0, 1];
 
@@ -105,6 +246,7 @@ function generate_contacts(A, B, manifold){
 		};
 		ord = [ord[1], ord[0]];
 	}
+	*/
 
 	return res;
 }
