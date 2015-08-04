@@ -1,6 +1,6 @@
 
 //simulation parameters
-var dt = 0.1;
+var dt = 0.02;
 var g = [0, -9.8, 0];
 
 
